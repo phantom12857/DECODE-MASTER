@@ -655,13 +655,13 @@ public class DECODEMechanisms {
 
     public void fireKicker() {
         if (kicker != null) {
-            kicker.setPosition(0.6);
+            kicker.setPosition(1.0);
         }
     }
 
     public void retractKicker() {
         if (kicker != null) {
-            kicker.setPosition(1.0);
+            kicker.setPosition(0.0);
         }
     }
 
