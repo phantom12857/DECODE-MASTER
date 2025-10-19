@@ -30,10 +30,10 @@ public class DECODEMechanisms {
 
     // === Spindexer System with Axon Encoder and Limit Switch ===
     private DcMotor spindexer;
-    private DcMotorEx spindexerEnc; // Axon encoder for spindexer position
-    private DigitalChannel spindexerLimitSwitch; // REV limit switch
+//    private DcMotorEx spindexerEnc = null; // Axon encoder for spindexer position
+    private DigitalChannel spindexerLimitSwitch = null; // REV limit switch
     private int spindexerStep = 0;
-    private static final double SPINDEXER_TICKS_PER_STEP = 1322;
+    private static final double SPINDEXER_TICKS_PER_STEP = 347.67;
     private boolean spindexerMoving = false;
     private double spindexerTargetPosition = 0;
     private boolean useLimitSwitch = true; // Enable/disable limit switch functionality
@@ -149,10 +149,10 @@ public class DECODEMechanisms {
     }
 
     private void initializeSpindexerSystem() {
-        try {
-            spindexer = hardwareMap.get(DcMotor.class, "spindexer");
-            spindexerEnc = hardwareMap.get(DcMotorEx.class, "spindexerEnc"); // Axon encoder
-            spindexerLimitSwitch = hardwareMap.get(DigitalChannel.class, "spindexerLimitSwitch");
+//        try {
+            spindexer = hardwareMap.get(DcMotorEx.class, "spindexer");
+//            spindexerEnc = hardwareMap.get(DcMotorEx.class, "spindexerEnc"); // Axon encoder
+            spindexerLimitSwitch = hardwareMap.get(DigitalChannel.class, "limit");
 
             // Configure limit switch
             spindexerLimitSwitch.setMode(DigitalChannel.Mode.INPUT);
@@ -162,11 +162,11 @@ public class DECODEMechanisms {
             spindexer.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
             // Initialize Axon encoder
-            spindexerEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            spindexerEnc.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        } catch (Exception e) {
-            // Spindexer system not configured
-        }
+            spindexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            spindexer.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+//        } catch (Exception e) {
+//            // Spindexer system not configured
+//        }
     }
 
     private void initializeLauncherSystem() {
@@ -276,9 +276,9 @@ public class DECODEMechanisms {
         spindexerMoving = false;
 
         // Reset encoder position to zero at home position
-        if (spindexerEnc != null) {
-            spindexerEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            spindexerEnc.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        if (spindexer != null) {
+            spindexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            spindexer.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
 
         spindexerStep = 0; // Reset to step 0 at home position
@@ -390,11 +390,11 @@ public class DECODEMechanisms {
     }
 
     public int getSpindexerEncoderTicks() {
-        return spindexerEnc != null ? spindexerEnc.getCurrentPosition() : 0;
+        return spindexer != null ? spindexer.getCurrentPosition() : 0;
     }
 
     public double getSpindexerEncoderRevolutions() {
-        return spindexerEnc != null ? spindexerEnc.getCurrentPosition() / SPINDEXER_TICKS_PER_STEP : 0;
+        return spindexer != null ? spindexer.getCurrentPosition() / SPINDEXER_TICKS_PER_STEP : 0;
     }
 
     // ================= HOOD SYSTEM METHODS WITH AXON ENCODER =================
@@ -704,9 +704,9 @@ public class DECODEMechanisms {
             hoodEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
             hoodEnc.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
-        if (spindexerEnc != null) {
-            spindexerEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            spindexerEnc.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        if (spindexer != null) {
+            spindexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            spindexer.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
     }
 
@@ -729,6 +729,9 @@ public class DECODEMechanisms {
                 getServo1EncoderTicks(), getServo1PositionRevolutions());
         telemetry.addData("Servo2 Encoder", "%d ticks (%.2f rev)",
                 getServo2EncoderTicks(), getServo2PositionRevolutions());
+
+        telemetry.addData("limit switch reading", spindexerLimitSwitch != null ? spindexerLimitSwitch.getState() : "null");
+//        telemetry.addData("limit switch reading", spindexerLimitSwitch.getState());
     }
 }
 
