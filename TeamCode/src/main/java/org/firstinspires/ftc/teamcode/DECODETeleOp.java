@@ -125,7 +125,7 @@ public class DECODETeleOp extends LinearOpMode {
             // Schedule retraction
             new Thread(() -> {
                 try {
-                    Thread.sleep(250);
+                    Thread.sleep(500);
                     mechanisms.retractKicker();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
