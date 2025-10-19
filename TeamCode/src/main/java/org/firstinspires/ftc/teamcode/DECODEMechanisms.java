@@ -176,7 +176,7 @@ public class DECODEMechanisms {
 
             launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-            kicker.setPosition(0.0);
+            kicker.setPosition(1.0);
         } catch (Exception e) {
             // Launcher system not configured
         }
@@ -258,7 +258,7 @@ public class DECODEMechanisms {
         if (spindexer == null || spindexerLimitSwitch == null) return;
 
         spindexerMoving = true;
-        spindexer.setPower(0.3); // Slow speed for homing
+        spindexer.setPower(-0.3); // Slow speed for homing
 
         // Home the spindexer by rotating until limit switch is pressed
         while (!isSpindexerLimitPressed() && spindexerMoving) {
@@ -300,7 +300,7 @@ public class DECODEMechanisms {
         int targetPos = (int)(step * SPINDEXER_TICKS_PER_STEP);
         spindexer.setTargetPosition(targetPos);
         spindexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        spindexer.setPower(0.6);
+        spindexer.setPower(-0.6);
     }
 
     /**
@@ -612,15 +612,15 @@ public class DECODEMechanisms {
     }
 
     public void startIntake() {
-        setIntakePower(1.0);
+        setIntakePower(-1.0);
     }
 
     public void stopIntake() {
-        setIntakePower(0.0);
+        setIntakePower(0.2);
     }
 
     public void reverseIntake() {
-        setIntakePower(-1.0);
+        setIntakePower(1.0);
     }
 
     // ================= LAUNCHER SYSTEM METHODS =================
@@ -655,13 +655,13 @@ public class DECODEMechanisms {
 
     public void fireKicker() {
         if (kicker != null) {
-            kicker.setPosition(1.0);
+            kicker.setPosition(0.67);
         }
     }
 
     public void retractKicker() {
         if (kicker != null) {
-            kicker.setPosition(0.0);
+            kicker.setPosition(1.0);
         }
     }
 
