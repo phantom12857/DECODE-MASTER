@@ -402,7 +402,7 @@ public class DECODEMechanisms {
     public void setHoodPosition(double position) {
         hoodTargetPosition = Math.max(HOOD_MIN_POS, Math.min(HOOD_MAX_POS, position));
         hoodPos = hoodTargetPosition;
-        hood.setPosition(hoodPos);
+        if (hood != null) hood.setPosition(hoodPos);
     }
 
     public void setHoodPositionWithEncoder(double targetTicks) {
