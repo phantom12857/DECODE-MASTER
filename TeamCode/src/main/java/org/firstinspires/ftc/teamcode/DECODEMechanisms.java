@@ -4,6 +4,7 @@ import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -33,9 +34,11 @@ public class DECODEMechanisms {
 //    private DcMotorEx spindexerEnc = null; // Axon encoder for spindexer position
     private DigitalChannel spindexerLimitSwitch = null; // REV limit switch
     private int spindexerStep = 0;
+    private int spindexerPos = 0;
+    private boolean simpleSpindexer = false;
     private static final double SPINDEXER_TICKS_PER_STEP = 347.67;
     private boolean spindexerMoving = false;
-    private double spindexerTargetPosition = 0;
+    private boolean homing = false;
     private boolean useLimitSwitch = true; // Enable/disable limit switch functionality
 
     // === Launcher System ===
@@ -160,6 +163,7 @@ public class DECODEMechanisms {
             spindexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
             spindexer.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             spindexer.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            spindexer.setDirection(DcMotorSimple.Direction.REVERSE);
 
             // Initialize Axon encoder
             spindexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -256,12 +260,13 @@ public class DECODEMechanisms {
      */
     public void homeSpindexer() {
         if (spindexer == null || spindexerLimitSwitch == null) return;
+//        homing = true;
 
         spindexerMoving = true;
-        spindexer.setPower(-0.3); // Slow speed for homing
+        spindexer.setPower(0.6);
 
         // Home the spindexer by rotating until limit switch is pressed
-        while (!isSpindexerLimitPressed() && spindexerMoving) {
+        while (!isSpindexerLimitPressed()) {
             // This loop will be broken by the limit switch or external stop
             // In a real implementation, you might want to add a timeout
             try {
@@ -274,6 +279,7 @@ public class DECODEMechanisms {
 
         spindexer.setPower(0);
         spindexerMoving = false;
+//        homing = false;
 
         // Reset encoder position to zero at home position
         if (spindexer != null) {
@@ -289,35 +295,58 @@ public class DECODEMechanisms {
      */
     private void moveSpindexerToStep(int step) {
         if (spindexer == null) return;
+        spindexerMoving = true;
+        int targetPos;
+        boolean f;
 
-        // If using limit switch and we're at step 0, ensure we're homed
+            if (step == 0) {
+                f = true;
+                 targetPos = (int) (3 * SPINDEXER_TICKS_PER_STEP);
+            } else {
+                f = false;
+                 targetPos = (int) (step * SPINDEXER_TICKS_PER_STEP); }
+            spindexer.setTargetPosition(targetPos);
+            spindexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            spindexer.setPower(-0.6);
+//        }
+
         if (useLimitSwitch && step == 0) {
             homeSpindexer();
-            return;
         }
+    }
 
-        spindexerMoving = true;
-        int targetPos = (int)(step * SPINDEXER_TICKS_PER_STEP);
+    public void moveSpindexer() {
+        if (spindexer == null) return;
+
+        int targetPos = (int)(spindexerPos*SPINDEXER_TICKS_PER_STEP);
         spindexer.setTargetPosition(targetPos);
         spindexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        spindexer.setPower(-0.6);
+        spindexer.setPower(0.6);
+        spindexerPos -= 1;
+        if (spindexerPos % 3 == 0) {
+            homeSpindexer();
+        }
+        spindexerMoving = false;
     }
 
     /**
      * Advance to next step with limit switch awareness
      */
     public void advanceSpindexer() {
-        if (!spindexerMoving && spindexer != null) {
-            int nextStep = (spindexerStep + 1) % 3;
-
-            // If using limit switch, ensure we don't advance past limits
-            if (useLimitSwitch) {
-                // Add any additional safety checks here
-            }
-
-            spindexerStep = nextStep;
-            moveSpindexerToStep(spindexerStep);
-        }
+//        if (simpleSpindexer) { moveSpindexer(); }
+//        else if (!spindexerMoving && spindexer != null) {
+//            int nextStep = (spindexerStep + 1) % 3;
+//
+//            // If using limit switch, ensure we don't advance past limits
+//            if (useLimitSwitch) {
+//                // Add any additional safety checks here
+//            }
+//
+//            if (nextStep == 0) nextStep = 3;
+//
+//            spindexerStep = nextStep;
+//            moveSpindexerToStep(spindexerStep);
+//        }
     }
 
     /**
@@ -363,9 +392,9 @@ public class DECODEMechanisms {
         if (spindexerMoving && spindexer != null) {
             // If using limit switch and it gets pressed during movement, stop immediately
             if (useLimitSwitch && isSpindexerLimitPressed() && spindexerStep != 0) {
-                stopSpindexer();
+//                stopSpindexer();
                 // Optionally reset to home position
-                spindexerStep = 0;
+//                spindexerStep = 0;
             }
 
             // Check if movement is complete
@@ -713,6 +742,7 @@ public class DECODEMechanisms {
     // ================= TELEMETRY METHODS =================
 
     public void addTelemetryData(Telemetry telemetry) {
+        telemetry.addData("spindexer target pos", spindexer.getTargetPosition());
         telemetry.addData("Drive Mode", isFieldCentric ? "Field-Centric" : "Robot-Centric");
         telemetry.addData("Heading (deg)", "%.1f", getHeadingDegrees());
         telemetry.addData("Spindexer", "Step %d, Pos %d, Moving: %b",
@@ -730,7 +760,7 @@ public class DECODEMechanisms {
         telemetry.addData("Servo2 Encoder", "%d ticks (%.2f rev)",
                 getServo2EncoderTicks(), getServo2PositionRevolutions());
 
-        telemetry.addData("limit switch reading", spindexerLimitSwitch != null ? spindexerLimitSwitch.getState() : "null");
+//        telemetry.addData("limit switch reading", spindexerLimitSwitch != null ? spindexerLimitSwitch.getState() : "null");
 //        telemetry.addData("limit switch reading", spindexerLimitSwitch.getState());
     }
 }

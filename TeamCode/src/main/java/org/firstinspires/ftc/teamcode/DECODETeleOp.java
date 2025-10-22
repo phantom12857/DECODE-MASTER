@@ -104,8 +104,7 @@ public class DECODETeleOp extends LinearOpMode {
         if (xPressed && !previousLeftStick) {
             // Cycle through spindexer steps manually
             int currentStep = mechanisms.getSpindexerStep();
-            mechanisms.setSpindexerStep((currentStep + 1) % 3);
-
+            mechanisms.setSpindexerStep((currentStep+1) % 3);
         }
         previousLeftStick = xPressed;
 
@@ -239,7 +238,7 @@ public class DECODETeleOp extends LinearOpMode {
             mechanisms.moveContinuousServo1Revolutions(-0.25); // Move backward 0.25 revolutions
         }
 
-        previousLeftStick = leftStick;
+//        previousLeftStick = leftStick;
         previousRightStick = rightStick;
     }
 
