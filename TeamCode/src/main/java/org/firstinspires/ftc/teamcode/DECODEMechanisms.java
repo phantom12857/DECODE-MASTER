@@ -42,7 +42,7 @@ public class DECODEMechanisms {
     private DigitalChannel spindexerLimitSwitch = null;
     private int spindexerStep = 0;
     private int ballsLoaded = 0;
-    private boolean spindexerMoving = false;
+    private boolean spindexerMoving = true;
     private boolean homing = false;
     private boolean useLimitSwitch = true;
     private boolean useColorSensor = true;
@@ -62,6 +62,8 @@ public class DECODEMechanisms {
     private DcMotorEx launcher;
     private Servo kicker;
     private double launcherRPM = 0;
+    private boolean isKicking = false;
+    private boolean shootSequenceActive = false;
     private static final double LAUNCHER_MAX_RPM = 5000;
     private static final double LAUNCHER_STEP = 250;
     private static final double TICKS_PER_REV = 28;
@@ -447,13 +449,13 @@ public class DECODEMechanisms {
     public void homeSpindexer() {
         if (spindexer == null) return;
 
-        spindexerMoving = true;
+//        spindexerMoving = true;
         homing = true;
-        spindexer.setPower(0.4);
 
         ElapsedTime timeout = new ElapsedTime();
 
         while (!isSpindexerLimitPressed() && timeout.seconds() < 5.0 && !Thread.currentThread().isInterrupted()) {
+            spindexer.setPower(0.4);
             try {
                 Thread.sleep(10);
             } catch (InterruptedException e) {
@@ -463,7 +465,7 @@ public class DECODEMechanisms {
         }
 
         spindexer.setPower(0);
-        spindexerMoving = false;
+//        spindexerMoving = false;
         homing = false;
 
         if (spindexer != null) {
@@ -472,13 +474,13 @@ public class DECODEMechanisms {
         }
 
         spindexerStep = 0;
-        ballsLoaded = 0;
+//        ballsLoaded = 0;
     }
 
     public void autoRotateToNextSlot() {
         if (spindexerMoving || spindexer == null) return;
 
-        spindexerMoving = true;
+//        spindexerMoving = true;
         int targetStep = (spindexerStep + 1) % 3;
 
         if (targetStep == 0) {
@@ -491,7 +493,7 @@ public class DECODEMechanisms {
     private void moveSpindexerToStep(int step) {
         if (spindexer == null) return;
 
-        spindexerMoving = true;
+//        spindexerMoving = true;
 
         if (step == 0) {
             homeSpindexer();
@@ -515,7 +517,7 @@ public class DECODEMechanisms {
             spindexer.setPower(0);
             spindexer.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             spindexerStep = step;
-            spindexerMoving = false;
+//            spindexerMoving = false;
         }
     }
 
@@ -530,22 +532,23 @@ public class DECODEMechanisms {
         }
 
         // Check for ball detection every 200ms to avoid excessive checking
-        if (ballCheckTimer.seconds() > 0.2) {
-            if (isBallDetected() && !spindexerMoving) {
+        if (ballCheckTimer.seconds() > .2 && !spindexerMoving && ballsLoaded < 3) {
+            if (isBallDetected() && !spindexerMoving && !isKicking && !shootSequenceActive) {
                 ballsLoaded++;
                 ballCheckTimer.reset();
+                autoRotateToNextSlot();
 
                 // Move to next slot after brief delay
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(300);
-                        if (!Thread.currentThread().isInterrupted()) {
-                            autoRotateToNextSlot();
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                }).start();
+//                new Thread(() -> {
+//                    try {
+//                        Thread.sleep(100);
+//                        if (!Thread.currentThread().isInterrupted()) {
+//                            autoRotateToNextSlot();
+//                        }
+//                    } catch (InterruptedException e) {
+//                        Thread.currentThread().interrupt();
+//                    }
+//                }).start();
             }
             ballCheckTimer.reset();
         }
@@ -598,23 +601,25 @@ public class DECODEMechanisms {
     }
 
     public void stopSpindexer() {
-        spindexerMoving = false;
+//        spindexerMoving = false;
         if (spindexer != null) {
             spindexer.setPower(0);
         }
     }
 
     public void updateSpindexer() {
+        spindexerMoving = spindexer.getPower() > .1 || spindexer.getPower() < -.1;
+
         if (spindexerMoving && spindexer != null) {
             if (useLimitSwitch && isSpindexerLimitPressed() && !homing) {
                 spindexer.setPower(0);
-                spindexerMoving = false;
+//                spindexerMoving = false;
             }
 
             if (!spindexer.isBusy() && !homing) {
                 spindexer.setPower(0);
                 spindexer.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-                spindexerMoving = false;
+//                spindexerMoving = false;
             }
         }
 
@@ -904,10 +909,10 @@ public class DECODEMechanisms {
         }
 
         double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
-        double lf = (y + x + rx) / denominator;
-        double lb = (y - x + rx) / denominator;
-        double rf = (y - x - rx) / denominator;
-        double rb = (y + x - rx) / denominator;
+        double lf = (y + x - rx) / denominator;
+        double lb = (y - x - rx) / denominator;
+        double rf = (y - x + rx) / denominator;
+        double rb = (y + x + rx) / denominator;
 
         leftFrontDrive.setPower(lf);
         leftBackDrive.setPower(lb);
@@ -966,6 +971,7 @@ public class DECODEMechanisms {
 
     public void reverseIntake() {
         setIntakePower(1.0);
+        shootSequenceActive = false;
     }
 
     // ================= LAUNCHER SYSTEM METHODS =================
@@ -1000,13 +1006,18 @@ public class DECODEMechanisms {
 
     public void fireKicker() {
         if (kicker != null) {
+            isKicking = true;
+            shootSequenceActive = true;
+            ballsLoaded--;
             kicker.setPosition(0.67);
+            if (ballsLoaded < 0) ballsLoaded = 0;
         }
     }
 
     public void retractKicker() {
         if (kicker != null) {
             kicker.setPosition(1.0);
+            isKicking = false;
         }
     }
 
@@ -1057,6 +1068,8 @@ public class DECODEMechanisms {
     // ================= TELEMETRY METHODS =================
 
     public void addTelemetryData(Telemetry telemetry) {
+        telemetry.addData("iskicking", isKicking);
+        telemetry.addData("shootingSequence", shootSequenceActive);
         telemetry.addData("Drive Mode", isFieldCentric ? "Field-Centric" : "Robot-Centric");
         telemetry.addData("Heading (deg)", "%.1f", getHeadingDegrees());
         telemetry.addData("Spindexer", "Step %d, Balls: %d/3, Moving: %b",
