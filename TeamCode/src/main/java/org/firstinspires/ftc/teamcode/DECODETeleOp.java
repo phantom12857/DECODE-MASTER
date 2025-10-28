@@ -75,8 +75,14 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @TeleOp(name = "DECODETeleOp", group = "Linear OpMode")
 public class DECODETeleOp extends LinearOpMode {
     private DECODEMechanisms mechanisms;
+    private AprilTagDetector aprilTagDetector;
     private final ElapsedTime runtime = new ElapsedTime();
     private double driveSpeedModifier = 1.0;
+
+    private double desiredRPM = 0.0;
+    private final double REGRESSION_SLOPE = 13.98485;
+    private final double REGRESSION_Y_INT = 2834.57576;
+    private double distanceToApriltag = 0.0;
 
     // Button state tracking
     // Gamepad 1
@@ -99,17 +105,19 @@ public class DECODETeleOp extends LinearOpMode {
     private boolean previousG2_Y = false;
     private boolean previousG2_LeftBumper = false;
     private boolean previousG2_RightBumper = false;
-    private boolean previousG2_DpadUp = false;
-    private boolean previousG2_DpadDown = false;
+    private boolean previousNear = false;
+    private boolean previousMid = false;
+    private boolean previousFar = false;
     private boolean previousG2_DpadLeft = false;
     private boolean previousG2_DpadRight = false;
     private boolean previousG2_Back = false;
-    private boolean previousG2_Start = false;
+    private boolean previousOff = false;
 
     @Override
     public void runOpMode() {
         // Initialize mechanisms
         mechanisms = new DECODEMechanisms(hardwareMap);
+        aprilTagDetector = new AprilTagDetector(hardwareMap);
 
         telemetry.addLine("Initialized, waiting for start...");
         telemetry.addLine("Spindexer limit switch: " +
@@ -238,55 +246,73 @@ public class DECODETeleOp extends LinearOpMode {
         boolean rightBumper = gamepad2.right_bumper;
         boolean leftBumper = gamepad2.left_bumper;
 
-        if (rightBumper && !previousG2_RightBumper) {
-            mechanisms.increaseLauncherRPM();
+        boolean near = gamepad2.dpad_left;
+        boolean mid = gamepad2.dpad_up;
+        boolean far = gamepad2.dpad_right;
+        boolean off = gamepad2.dpad_down;
+
+//        if (rightBumper && !previousG2_RightBumper) {
+//            mechanisms.increaseLauncherRPM();
+//        }
+//        if (leftBumper && !previousG2_LeftBumper) {
+//            mechanisms.decreaseLauncherRPM();
+//        }
+        if (near && !previousNear) {
+            mechanisms.setLauncherRPM(3250);
+        } if (mid && !previousMid) {
+            mechanisms.setLauncherRPM(3750);
+        } if (far && !previousFar) {
+            mechanisms.setLauncherRPM(4500);
         }
+
+        distanceToApriltag = aprilTagDetector.getDistance();
+        desiredRPM = distanceToApriltag * REGRESSION_SLOPE + REGRESSION_Y_INT;
+
         if (leftBumper && !previousG2_LeftBumper) {
-            mechanisms.decreaseLauncherRPM();
+            mechanisms.setLauncherRPM(desiredRPM);
         }
 
         previousG2_LeftBumper = leftBumper;
         previousG2_RightBumper = rightBumper;
 
-        // Stop launcher with Start button
-        boolean startPressed = gamepad2.start;
-        if (startPressed && !previousG2_Start) {
+        // Stop launcher with dpad-down button
+        if (off && !previousOff) {
             mechanisms.stopLauncher();
         }
-        previousG2_Start = startPressed;
+        previousOff = off;
     }
 
     private void handleHoodControls() {
         // Manual hood control with right stick Y - direct power control
-        double stick = -gamepad2.right_stick_y;
-
-        if (Math.abs(stick) > 0.1) {
-            mechanisms.moveHoodManual(stick * 0.8);
-        } else {
-            mechanisms.stopHood(); // This will engage PID holding automatically
-        }
-
-        // Preset hood movements with D-pad - use fixed power values
-        boolean dpadUp = gamepad2.dpad_up;
-        boolean dpadDown = gamepad2.dpad_down;
-
-        if (dpadUp && !previousG2_DpadUp) {
-            mechanisms.moveHoodManual(0.6);
-        }
-        if (dpadDown && !previousG2_DpadDown) {
-            mechanisms.moveHoodManual(-0.6);
-        }
-
-        // Stop hood when D-pad buttons are released (engages PID holding)
-        if (previousG2_DpadUp && !dpadUp) {
-            mechanisms.stopHood();
-        }
-        if (previousG2_DpadDown && !dpadDown) {
-            mechanisms.stopHood();
-        }
-
-        previousG2_DpadUp = dpadUp;
-        previousG2_DpadDown = dpadDown;
+//        double stick = -gamepad2.right_stick_y;
+//
+//        if (Math.abs(stick) > 0.1) {
+//            mechanisms.moveHoodManual(stick * 0.8);
+//        } else {
+//            mechanisms.stopHood(); // This will engage PID holding automatically
+//        }
+//
+//        // Preset hood movements with D-pad - use fixed power values
+//        boolean dpadUp = gamepad2.dpad_up;
+//        boolean dpadDown = gamepad2.dpad_down;
+//
+//        if (dpadUp && !previousG2_DpadUp) {
+//            mechanisms.moveHoodManual(0.6);
+//        }
+//        if (dpadDown && !previousG2_DpadDown) {
+//            mechanisms.moveHoodManual(-0.6);
+//        }
+//
+//        // Stop hood when D-pad buttons are released (engages PID holding)
+//        if (previousG2_DpadUp && !dpadUp) {
+//            mechanisms.stopHood();
+//        }
+//        if (previousG2_DpadDown && !dpadDown) {
+//            mechanisms.stopHood();
+//        }
+//
+//        previousG2_DpadUp = dpadUp;
+//        previousG2_DpadDown = dpadDown;
     }
 
     private void handleTurretControls() {
@@ -436,7 +462,10 @@ public class DECODETeleOp extends LinearOpMode {
         mechanisms.debugHoodSystem(telemetry);
         mechanisms.debugServoSystem(telemetry);
 
+        aprilTagDetector.addTelemetry(telemetry);
+
         // Add control hints
+        telemetry.addLine("Distance: "+ aprilTagDetector.getDistance());
         telemetry.addLine("");
         telemetry.addLine("=== Controls ===");
         telemetry.addData("Drive", "LS: Move, RS: Rotate, Y: Toggle Field-Centric, B: Reset Heading");

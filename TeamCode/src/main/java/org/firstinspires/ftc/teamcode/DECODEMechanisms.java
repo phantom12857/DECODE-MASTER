@@ -30,7 +30,7 @@ public class DECODEMechanisms {
     private DcMotor leftFrontDrive, leftBackDrive, rightFrontDrive, rightBackDrive;
     private BNO055IMU imu;
     private double headingOffset = 0;
-    private boolean isFieldCentric = true;
+    private boolean isFieldCentric = false;
 
     // === Intake System ===
     private DcMotor intake;
