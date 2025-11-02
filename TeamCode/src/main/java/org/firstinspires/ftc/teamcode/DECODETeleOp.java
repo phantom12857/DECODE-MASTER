@@ -170,7 +170,7 @@ public class DECODETeleOp extends LinearOpMode {
         previousG1_LeftBumper = leftBumperPressed;
 
         double y = -gamepad1.left_stick_y * driveSpeedModifier;
-        double x = -gamepad1.left_stick_x * driveSpeedModifier;
+        double x = gamepad1.left_stick_x * driveSpeedModifier;
         double rx = gamepad1.right_stick_x * driveSpeedModifier;
 
         // Toggle field-centric with Y

@@ -60,7 +60,7 @@ public class DECODEMechanisms {
 
     // === Launcher System ===
     private DcMotorEx launcher;
-    private Servo kicker;
+    public Servo kicker;
     private double launcherRPM = 0;
     private boolean isKicking = false;
     private boolean shootSequenceActive = false;
@@ -150,10 +150,10 @@ public class DECODEMechanisms {
             rightFrontDrive = hardwareMap.get(DcMotor.class, "rightFrontDrive");
             rightBackDrive = hardwareMap.get(DcMotor.class, "rightBackDrive");
 
-            leftFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-            leftBackDrive.setDirection(DcMotor.Direction.FORWARD);
-            rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
-            rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
+            leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
+            leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
+            rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
+            rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
 
             setDriveZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         } catch (Exception e) {
@@ -909,10 +909,10 @@ public class DECODEMechanisms {
         }
 
         double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
-        double lf = (y + x - rx) / denominator;
-        double lb = (y - x - rx) / denominator;
-        double rf = (y - x + rx) / denominator;
-        double rb = (y + x + rx) / denominator;
+        double lf = (y + x + rx) / denominator;
+        double lb = (y - x + rx) / denominator;
+        double rf = (y - x - rx) / denominator;
+        double rb = (y + x - rx) / denominator;
 
         leftFrontDrive.setPower(lf);
         leftBackDrive.setPower(lb);
