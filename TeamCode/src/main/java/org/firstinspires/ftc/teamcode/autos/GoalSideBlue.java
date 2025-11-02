@@ -17,6 +17,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 
+
 @Autonomous
 public class GoalSideBlue extends OpMode{
     private DECODEMechanisms mechanisms;
@@ -243,7 +244,7 @@ public class GoalSideBlue extends OpMode{
     }
 
     private void kickerControls(){
-        if (launch = true){
+        if (launch == true){
             mechanisms.fireKicker();
 
         }
