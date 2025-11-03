@@ -16,24 +16,25 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-
-
 @Autonomous
 public class GoalSideBlue extends OpMode{
     private DECODEMechanisms mechanisms;
     private AprilTagDetector aprilTagDetector;
-    private final ElapsedTime timer = new ElapsedTime();
+    private final ElapsedTime kickerTimer = new ElapsedTime();
     private double globalMaxPower = 0.8;
     private double intakingMaxPower = 0.2;
-    private boolean launch;
-    private int launchCounts = 0;
+    private boolean launchInProgress = false;
+    private int shotsFired = 0;
+    private int targetSpindexerStep = 0;
+
     public enum LaunchAllState {
         Inactive,
-        Launch1,
-        Rotate2,
-        Launch2,
-        Rotate3,
-        Launch3,
+        HomingSpindexer,
+        ReadyToFire,
+        Firing,
+        WaitingForRetract,
+        RotatingSpindexer,
+        Complete
     }
 
     LaunchAllState launchAllState = LaunchAllState.Inactive;
@@ -100,101 +101,100 @@ public class GoalSideBlue extends OpMode{
                 .addPath(new BezierLine(scorePose, parkPose))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), parkPose.getHeading())
                 .build();
-
-
     }
 
     // ========== Main Auto Switch Case ==========
     public void autonomousPathUpdate(){
         switch(pathState) {
             case 0:
+                // Move to scoring position and set up launcher
                 if (!follower.isBusy()) {
                     follower.setMaxPower(globalMaxPower);
                     follower.followPath(scanAndScorePL, true);
                     mechanisms.setLauncherRPM(3250);
-
-                    mechanisms.fireKicker();
-                    new Thread(() -> {
-                        try {
-                            Thread.sleep(500);
-                            mechanisms.retractKicker();
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }).start();
-                    //if(launchCounts == 3){
-                        pathState = 1;
-                    //}
+                    mechanisms.startIntake();
+                    mechanisms.reverseIntake();
+                    pathState = 1;
                 }
                 break;
 
             case 1:
+                // Wait for launcher to get up to speed and launch 3 pixels
                 if (!follower.isBusy()) {
-                    follower.followPath(toIntakeA3, false);
-                    mechanisms.startIntake();
-                    mechanisms.reverseIntake();
-                    pathState = 2;
+                    if (launchAllState == LaunchAllState.Inactive) {
+                        // Start by homing the spindexer to ensure we know its position
+                        launchAllState = LaunchAllState.HomingSpindexer;
+                        mechanisms.homeSpindexer();
+                    } else if (launchAllState == LaunchAllState.Complete) {
+                        // All 3 shots are done, continue to next path
+                        launchAllState = LaunchAllState.Inactive;
+                        pathState = 2;
+                    }
                 }
                 break;
 
             case 2:
                 if (!follower.isBusy()) {
-                    follower.setMaxPower(intakingMaxPower);
-                    follower.followPath(intakingA3, false);
+                    follower.followPath(toIntakeA3, false);
                     pathState = 3;
                 }
                 break;
 
             case 3:
                 if (!follower.isBusy()) {
-                    follower.setMaxPower(globalMaxPower);
-                    follower.followPath(scoreA3, true);
+                    follower.setMaxPower(intakingMaxPower);
+                    follower.followPath(intakingA3, false);
                     pathState = 4;
                 }
                 break;
 
             case 4:
                 if (!follower.isBusy()) {
-                    follower.followPath(toIntakeA2, false);
+                    follower.setMaxPower(globalMaxPower);
+                    follower.followPath(scoreA3, true);
                     pathState = 5;
                 }
                 break;
 
             case 5:
                 if (!follower.isBusy()) {
-                    follower.setMaxPower(intakingMaxPower);
-                    follower.followPath(intakingA2, false);
+                    follower.followPath(toIntakeA2, false);
                     pathState = 6;
                 }
                 break;
 
             case 6:
-                if (!follower.isBusy()){
-                    follower.setMaxPower(globalMaxPower);
-                    follower.followPath(scoreA2, true);
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(intakingMaxPower);
+                    follower.followPath(intakingA2, false);
                     pathState = 7;
                 }
                 break;
 
             case 7:
+                if (!follower.isBusy()){
+                    follower.setMaxPower(globalMaxPower);
+                    follower.followPath(scoreA2, true);
+                    pathState = 8;
+                }
+                break;
+
+            case 8:
                 if(!follower.isBusy()) {
                     follower.followPath(park, false);
                     mechanisms.stopAllMotors();
                     pathState = -1;
                 }
                 break;
-
         }
     }
 
     @Override
     public void loop() {
-
         follower.update();
         autonomousPathUpdate();
 
         mechanisms.updateAllSystems();
-        kickerControls();
         launchAll();
 
         telemetry.addData("path state", pathState);
@@ -202,6 +202,11 @@ public class GoalSideBlue extends OpMode{
         telemetry.addData("y", follower.getPose().getY());
         telemetry.addData("heading", follower.getPose().getHeading());
         telemetry.addData("Launch All State", launchAllState);
+        telemetry.addData("Shots Fired", shotsFired);
+        telemetry.addData("Current Spindexer Step", mechanisms.getSpindexerStep());
+        telemetry.addData("Target Spindexer Step", targetSpindexerStep);
+        telemetry.addData("Spindexer Moving", mechanisms.isSpindexerMoving());
+        telemetry.addData("Kicker Timer", kickerTimer.milliseconds());
         telemetry.update();
     }
 
@@ -236,6 +241,8 @@ public class GoalSideBlue extends OpMode{
     public void start() {
         opmodeTimer.resetTimer();
         pathState = 0;
+        shotsFired = 0;
+        targetSpindexerStep = 0;
     }
 
     @Override
@@ -243,56 +250,70 @@ public class GoalSideBlue extends OpMode{
         mechanisms.stopAllMotors();
     }
 
-    private void kickerControls(){
-        if (launch == true){
-            mechanisms.fireKicker();
-
-        }
-    }
     public void launchAll(){
         switch (launchAllState){
             case Inactive:
-                if(launch == true){
-                    launchAllState = LaunchAllState.Launch1;
-                }
+                // Do nothing, waiting to start
                 break;
-            case Launch1:
-                launch = true;
-                if(launch == false){
-                    launchAllState = LaunchAllState.Rotate2;
+
+            case HomingSpindexer:
+                // Wait for spindexer to finish homing
+                if (!mechanisms.isSpindexerMoving()) {
+                    // Spindexer is now homed and at position 0
+                    // Ready to fire first shot without any rotation
+                    targetSpindexerStep = 0;
+                    launchAllState = LaunchAllState.ReadyToFire;
                 }
                 break;
 
-            case Rotate2:
-                mechanisms.manualAdvanceSpindexer();
-                if(!mechanisms.isSpindexerMoving()){
-                    launchAllState = LaunchAllState.Launch2;
+            case ReadyToFire:
+                // Wait for spindexer to be completely stopped before firing
+                if (!mechanisms.isSpindexerMoving()) {
+                    // Start the kick sequence
+                    mechanisms.fireKicker();
+                    launchInProgress = true;
+                    launchAllState = LaunchAllState.Firing;
+                    kickerTimer.reset();
                 }
                 break;
 
-            case Launch2:
-                launch = true;
-                if(launch == false){
-                    launchAllState = LaunchAllState.Rotate3;
+            case Firing:
+                // Wait for kick to complete (extend time)
+                if (kickerTimer.milliseconds() > 500) {
+                    mechanisms.retractKicker();
+                    launchAllState = LaunchAllState.WaitingForRetract;
+                    kickerTimer.reset();
                 }
                 break;
 
-            case Rotate3:
-                mechanisms.manualAdvanceSpindexer();
-                if(!mechanisms.isSpindexerMoving()){
-                    launchAllState = LaunchAllState.Launch3;
+            case WaitingForRetract:
+                // Wait for retraction to complete
+                if (kickerTimer.milliseconds() > 300) {
+                    shotsFired++;
+                    launchInProgress = false;
+
+                    if (shotsFired >= 3) {
+                        launchAllState = LaunchAllState.Complete;
+                    } else {
+                        // Calculate next spindexer step (1, 2 for remaining shots)
+                        targetSpindexerStep = shotsFired; // 0, 1, 2 for 3 shots
+                        mechanisms.setSpindexerStep(targetSpindexerStep);
+                        launchAllState = LaunchAllState.RotatingSpindexer;
+                    }
                 }
                 break;
 
-            case Launch3:
-                launch = true;
-                if(launch == false){
-                    launchAllState = LaunchAllState.Inactive;
+            case RotatingSpindexer:
+                // Wait for spindexer to finish rotating to the target step
+                if (!mechanisms.isSpindexerMoving()) {
+                    // Spindexer is stopped, safe to fire again
+                    launchAllState = LaunchAllState.ReadyToFire;
                 }
                 break;
 
+            case Complete:
+                // All three shots completed
+                break;
         }
     }
-
-
 }
