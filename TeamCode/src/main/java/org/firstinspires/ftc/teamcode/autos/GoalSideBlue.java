@@ -1,19 +1,16 @@
 package org.firstinspires.ftc.teamcode.autos;
 
 import com.pedropathing.follower.Follower;
-
-import org.firstinspires.ftc.teamcode.AprilTagDetector;
-import org.firstinspires.ftc.teamcode.DECODEMechanisms;
+import org.firstinspires.ftc.teamcode.Mechanisms.core.DECODEMechanisms;
+import org.firstinspires.ftc.teamcode.tests.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
-import com.pedropathing.paths.callbacks.PathCallback;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous
@@ -21,16 +18,12 @@ public class GoalSideBlue extends OpMode{
     private DECODEMechanisms mechanisms;
     private AprilTagDetector aprilTagDetector;
     private final ElapsedTime kickerTimer = new ElapsedTime();
-    private final ElapsedTime spindexerTimer = new ElapsedTime();
     private double globalMaxPower = 0.8;
     private double intakingMaxPower = .225;
-    private boolean launchInProgress = false;
     private int shotsFired = 0;
-    private int targetSpindexerStep = 0;
 
     public enum LaunchAllState {
         Inactive,
-        HomingSpindexer,
         ReadyToFire,
         Firing,
         WaitingForRetract,
@@ -39,11 +32,6 @@ public class GoalSideBlue extends OpMode{
     }
 
     LaunchAllState launchAllState = LaunchAllState.Inactive;
-
-    private double desiredRPM = 0.0;
-    private final double REGRESSION_SLOPE = 13.98485;
-    private final double REGRESSION_Y_INT = 2834.57576;
-    private double distanceToApriltag = 0.0;
 
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
@@ -113,9 +101,9 @@ public class GoalSideBlue extends OpMode{
                 if (!follower.isBusy()) {
                     follower.setMaxPower(globalMaxPower);
                     follower.followPath(scanAndScorePL, true);
-                    mechanisms.setLauncherRPM(3250);
-                    mechanisms.startIntake();
-                    mechanisms.reverseIntake();
+                    mechanisms.launcher.setRPM(3250);
+                    mechanisms.intake.start();
+                    mechanisms.intake.reverse();
                     shotsFired = 0;
                     pathState = 1;
                 }
@@ -125,11 +113,8 @@ public class GoalSideBlue extends OpMode{
                 // Wait for launcher to get up to speed and launch 3 pixels
                 if (!follower.isBusy()) {
                     if (launchAllState == LaunchAllState.Inactive) {
-                        // Start by homing the spindexer to ensure we know its position
-                        launchAllState = LaunchAllState.HomingSpindexer;
-                        mechanisms.homeSpindexer();
+                        launchAllState = LaunchAllState.ReadyToFire;
                     } else if (launchAllState == LaunchAllState.Complete) {
-                        // All 3 shots are done, continue to next path
                         launchAllState = LaunchAllState.Inactive;
                         pathState = 2;
                     }
@@ -139,7 +124,7 @@ public class GoalSideBlue extends OpMode{
             case 2:
                 if (!follower.isBusy()) {
                     follower.setMaxPower(.5);
-                    mechanisms.ballsLoaded = 0;
+                    mechanisms.spindexer.setBallsLoaded(0);
                     follower.followPath(toIntakeA3, false);
                     pathState = 3;
                 }
@@ -167,11 +152,8 @@ public class GoalSideBlue extends OpMode{
                 if (!follower.isBusy()) {
                     if (launchAllState == LaunchAllState.Inactive) {
                         shotsFired = 0;
-                        // Start by homing the spindexer to ensure we know its position
-                        launchAllState = LaunchAllState.HomingSpindexer;
-                        mechanisms.homeSpindexer();
+                        launchAllState = LaunchAllState.ReadyToFire;
                     } else if (launchAllState == LaunchAllState.Complete) {
-                        // All 3 shots are done, continue to next path
                         launchAllState = LaunchAllState.Inactive;
                         pathState = 6;
                     }
@@ -206,11 +188,8 @@ public class GoalSideBlue extends OpMode{
                 // Wait for launcher to get up to speed and launch 3 pixels
                 if (!follower.isBusy()) {
                     if (launchAllState == LaunchAllState.Inactive) {
-                        // Start by homing the spindexer to ensure we know its position
-                        launchAllState = LaunchAllState.HomingSpindexer;
-                        mechanisms.homeSpindexer();
+                        launchAllState = LaunchAllState.ReadyToFire;
                     } else if (launchAllState == LaunchAllState.Complete) {
-                        // All 3 shots are done, continue to next path
                         launchAllState = LaunchAllState.Inactive;
                         pathState = 10;
                     }
@@ -220,7 +199,7 @@ public class GoalSideBlue extends OpMode{
             case 10:
                 if(!follower.isBusy()) {
                     follower.followPath(park, false);
-                    mechanisms.stopAllMotors();
+                    mechanisms.stopAll();
                     pathState = -1;
                 }
                 break;
@@ -232,7 +211,7 @@ public class GoalSideBlue extends OpMode{
         follower.update();
         autonomousPathUpdate();
 
-        mechanisms.updateAllSystems();
+        mechanisms.update();
         launchAll();
 
         telemetry.addData("path state", pathState);
@@ -241,9 +220,7 @@ public class GoalSideBlue extends OpMode{
         telemetry.addData("heading", follower.getPose().getHeading());
         telemetry.addData("Launch All State", launchAllState);
         telemetry.addData("Shots Fired", shotsFired);
-        telemetry.addData("Current Spindexer Step", mechanisms.getSpindexerStep());
-        telemetry.addData("Target Spindexer Step", targetSpindexerStep);
-        telemetry.addData("Spindexer Moving", mechanisms.isSpindexerMoving());
+        telemetry.addData("Spindexer Moving", mechanisms.spindexer.isMoving());
         telemetry.addData("Kicker Timer", kickerTimer.milliseconds());
         telemetry.update();
     }
@@ -262,9 +239,8 @@ public class GoalSideBlue extends OpMode{
 
         telemetry.addLine("Initialized, waiting for start...");
         telemetry.addLine("Spindexer limit switch: " +
-                (mechanisms.isSpindexerLimitPressed() ? "PRESSED" : "Released"));
+                (mechanisms.spindexer.isLimitPressed() ? "PRESSED" : "Released"));
         telemetry.addLine("Auto-Intake: ENABLED by default");
-        telemetry.addLine("Hood PID Holding: ACTIVE");
         telemetry.update();
     }
 
@@ -280,9 +256,7 @@ public class GoalSideBlue extends OpMode{
         opmodeTimer.resetTimer();
         pathState = 0;
         shotsFired = 0;
-        targetSpindexerStep = 0;
     }
-
 
     public void launchAll(){
         switch (launchAllState){
@@ -290,63 +264,30 @@ public class GoalSideBlue extends OpMode{
                 // Do nothing, waiting to start
                 break;
 
-            case HomingSpindexer:
-                // Wait for spindexer to finish homing
-                if (!mechanisms.isSpindexerMoving()) {
-                    // Spindexer is now homed and at position 0
-                    // Ready to fire first shot without any rotation
-                    targetSpindexerStep = 0;
-                    launchAllState = LaunchAllState.ReadyToFire;
-                }
-                break;
-
             case ReadyToFire:
-                // Wait for spindexer to be completely stopped before firing
-                if (!mechanisms.isSpindexerMoving()) {
-                    // Start the kick sequence
-                    mechanisms.fireKicker();
-                    launchInProgress = true;
-                    launchAllState = LaunchAllState.Firing;
-                    kickerTimer.reset();
-                }
+                // Start the kick sequence
+                mechanisms.launcher.kick();
+                launchAllState = LaunchAllState.Firing;
+                kickerTimer.reset();
                 break;
 
             case Firing:
-                // Wait for kick to complete (extend time)
-                if (kickerTimer.milliseconds() > 500) {
-                    mechanisms.retractKicker();
-                    launchAllState = LaunchAllState.WaitingForRetract;
-                    kickerTimer.reset();
-                }
-                break;
-
-            case WaitingForRetract:
-                // Wait for retraction to complete
-                if (kickerTimer.milliseconds() > 300) {
+                // Wait for kick to complete
+                if (kickerTimer.milliseconds() > 1000 && !mechanisms.launcher.isKicking()) {
                     shotsFired++;
-                    launchInProgress = false;
-
                     if (shotsFired >= 3) {
                         launchAllState = LaunchAllState.Complete;
                     } else {
-                        // Calculate next spindexer step (1, 2 for remaining shots)
-                        targetSpindexerStep = shotsFired; // 0, 1, 2 for 3 shots
-                        mechanisms.setSpindexerStep(targetSpindexerStep);
                         launchAllState = LaunchAllState.RotatingSpindexer;
                     }
                 }
                 break;
-
             case RotatingSpindexer:
-                // Wait for spindexer to finish rotating to the target step
-                if (!mechanisms.isSpindexerMoving()) {
-                    // Spindexer is stopped, safe to fire again
-                    launchAllState = LaunchAllState.ReadyToFire;
-                }
+                mechanisms.spindexer.increment();
+                launchAllState = LaunchAllState.ReadyToFire;
                 break;
-
             case Complete:
-                // All three shots completed
+                // Do nothing, wait for path to continue
                 break;
         }
     }

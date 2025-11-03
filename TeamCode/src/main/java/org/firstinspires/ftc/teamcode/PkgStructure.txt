@@ -1,0 +1,30 @@
+TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
+├── autos/                          # Autonomous opmodes
+│   ├── GoalSideBlue.java           # Main autonomous routine
+│   └── ...
+├── TeleOP/                         # Tele-operated opmodes
+│   ├── DECODETeleOp.java           # Main teleop orchestrator
+│   └── TeleOpController.java       # Teleop input handling
+├── Mechanisms/                     # Robot mechanisms package
+│   ├── core/                       # Core framework classes
+│   │   ├── DECODEMechanisms.java   # Main robot orchestrator
+│   │   ├── Subsystem.java          # Base interface
+│   │   └── PIDController.java      # PID control implementation
+│   ├── subsystems/                 # Individual robot subsystems
+│   │   ├── DriveSystem.java        # Mecanum drive + IMU
+│   │   ├── SpindexerSystem.java    # Ball handling + sensors
+│   │   ├── LauncherSystem.java     # Flywheel + kicker
+│   │   ├── IntakeSystem.java       # Intake motor control
+│   │   ├── HoodSystem.java         # Hood with PID position holding
+│   │   ├── TurretSystem.java       # Turret rotation
+│   │   └── ContinuousServoSystem.java # Encoder-based servos
+│   └── utils/                      # Utility classes
+│       ├── LimitSwitchManager.java # Debounced limit switch handling
+│       ├── SensorManager.java      # Color/distance sensor processing
+│       ├── ButtonDebouncer.java    # Input debouncing
+│       └── Filter.java             # Low-pass signal filtering
+├── tests/                          # Test and diagnostic opmodes
+│   ├── AprilTagDetector.java
+│   └── ...
+└── common/                         # Shared utilities
+    └── ...

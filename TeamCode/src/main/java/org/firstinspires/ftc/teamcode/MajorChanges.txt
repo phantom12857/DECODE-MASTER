@@ -1,0 +1,247 @@
+Major Changes Made
+
+Removed Features/Files:
+ControlUtils.java - Not used in new structure
+
+Monolithic DECODEMechanisms.java - Split into subsystems
+
+Blocking spindexer methods - All now non-blocking with state machines
+
+Manual button state tracking arrays - Replaced with ButtonDebouncer
+
+
+Added Features:
+1. Core Framework (Mechanisms/core/)
+Subsystem.java - Base interface ensuring all subsystems implement:
+
+update() - Periodic updates
+
+stop() - Emergency stop
+
+addTelemetryData() - Debug information
+
+DECODEMechanisms.java - Main orchestrator:
+
+Manages all subsystem instances
+
+Provides centralized update() and stopAll() methods
+
+Clean public API for opmodes
+
+PIDController.java - Reusable PID implementation used by:
+
+Launcher velocity control
+
+Hood position holding
+
+Continuous servo positioning
+
+
+2. Subsystem Classes (Mechanisms/subsystems/)
+DriveSystem.java
+
+Mecanum drive with field-centric/robot-centric toggle
+
+IMU integration for heading tracking
+
+Speed modifier support
+
+
+SpindexerSystem.java (COMPLETELY REWRITTEN)
+
+Non-blocking state machine (IDLE, HOMING, MOVING_TO_STEP)
+
+Auto ball detection with color/distance sensors
+
+Limit switch homing with debouncing
+
+3-position rotation with encoder tracking
+
+Automatic intake sequencing
+
+
+LauncherSystem.java
+
+Velocity-controlled flywheel with PID
+
+Non-blocking kicker sequence (extend -> wait -> retract)
+
+RPM-based control with max safety limits
+
+
+HoodSystem.java
+
+Automatic PID position holding when not manually controlled
+
+Analog encoder feedback
+
+Power-based manual override with smooth return to hold
+
+
+IntakeSystem.java, TurretSystem.java, ContinuousServoSystem.java
+
+Simplified, focused implementations
+
+Encoder-based position control for continuous servos
+
+
+3. Utility Classes (Mechanisms/utils/)
+LimitSwitchManager.java
+
+Hardware debouncing (50ms)
+
+Edge detection (pressed/released events)
+
+State tracking
+
+
+SensorManager.java
+
+Color/distance sensor data fusion
+
+Low-pass filtering on all sensor readings
+
+Ball detection logic with debouncing
+
+Distance-based detection thresholds
+
+
+ButtonDebouncer.java
+
+Prevents multiple triggers from single button presses
+
+Used throughout TeleOp for clean input handling
+
+Edge detection capabilities
+
+Filter.java
+
+Simple low-pass filter for sensor data
+
+Configurable alpha coefficient
+
+
+4. TeleOp Restructure
+DECODETeleOp.java (Main opmode)
+
+Clean separation from control logic
+
+Focuses on initialization and main loop
+
+Handles telemetry display
+
+
+TeleOpController.java (New class)
+
+All gamepad input processing
+
+Button debouncing for all controls
+
+Control mapping implementation
+
+State machine management
+
+Control Map (Updated)
+Gamepad 1 (Driver)
+Left Stick: Drive forward/backward, strafe left/right
+
+Right Stick: Rotate robot
+
+Y Button: Toggle field-centric driving
+
+B Button: Reset IMU heading
+
+Left/Right Bumpers: Adjust drive speed (0.1-1.0)
+
+D-pad Down: Manual spindexer home
+
+Triggers: Continuous servo 1 control
+
+Stick Buttons: Precise servo positioning (+-0.25 rev)
+
+Gamepad 2 (Operator)
+Triggers: Intake forward/reverse
+
+A Button: Manual spindexer advance
+
+B Button: Fire kicker
+
+X Button: Manual spindexer step
+
+Y Button: Home spindexer
+
+D-pad: Launcher presets (3250/3750/4500 RPM)
+
+Left Bumper: Auto RPM from AprilTag distance
+
+Right Stick: Manual hood control
+
+Left Stick: Manual turret control
+
+
+
+Key Improvements
+Performance
+Non-blocking operations - No more while loops stalling the main thread
+
+State machines - Clean state transitions for complex operations
+
+Debounced inputs - Prevents multiple triggers from single presses
+
+Maintainability
+Single responsibility - Each class has one clear purpose
+
+Interface consistency - All subsystems follow the same pattern
+
+Encapsulation - Internal details hidden behind clean APIs
+
+Robustness
+Sensor filtering - Noise reduction on all sensor inputs
+
+Timeout protection - Prevents motors from running indefinitely
+
+Error handling - Proper exception handling in constructors
+
+Debugging
+Comprehensive telemetry - Each subsystem provides debug data
+
+State visibility - Clear state machine status in telemetry
+
+Button debugging - Visual feedback for input handling
+
+Technical Details
+Spindexer State Machine
+text
+IDLE -> HOMING -> IDLE (when limit pressed)
+IDLE -> MOVING_TO_STEP -> IDLE (when encoder target reached)
+Hood PID Holding
+Automatically engages when manual control stops
+
+Maintains position against vibration/movement
+
+Smooth transition between manual and automatic control
+
+Launcher Control
+Velocity-based PID control for consistent RPM
+
+Non-blocking kick sequence with automatic retraction
+
+Thread-safe operation
+
+Sensor Processing
+30ms filtering on distance readings
+
+3-frame debouncing on ball detection
+
+Color thresholding for reliable detection
+
+Migration Notes
+For existing opmodes:
+
+Replace mechanisms.method() with mechanisms.subsystem.method()
+
+Remove manual button state arrays - use built-in debouncing
+
+Update to non-blocking patterns for spindexer operations
+
+Leverage new automatic features (hood holding, sensor filtering)

@@ -1,9 +1,8 @@
 package org.firstinspires.ftc.teamcode.autos;
 
 import com.pedropathing.follower.Follower;
-
-import org.firstinspires.ftc.teamcode.AprilTagDetector;
-import org.firstinspires.ftc.teamcode.DECODEMechanisms;
+import org.firstinspires.ftc.teamcode.Mechanisms.core.DECODEMechanisms;
+import org.firstinspires.ftc.teamcode.tests.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
@@ -12,11 +11,27 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous
 public class FarSideRed extends OpMode{
     private DECODEMechanisms mechanisms;
     private AprilTagDetector aprilTagDetector;
+    private final ElapsedTime kickerTimer = new ElapsedTime();
+    private double globalMaxPower = 0.8;
+    private double intakingMaxPower = 0.3;
+    private int shotsFired = 0;
+
+    public enum LaunchAllState {
+        Inactive,
+        ReadyToFire,
+        Firing,
+        WaitingForRetract,
+        RotatingSpindexer,
+        Complete
+    }
+
+    LaunchAllState launchAllState = LaunchAllState.Inactive;
 
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
@@ -31,7 +46,6 @@ public class FarSideRed extends OpMode{
     private final Pose bIntakeControlPose = new Pose(100, 20, Math.toRadians(0));
     private final Pose bEndPose = new Pose(130,9, Math.toRadians(0));
     private final Pose parkPose = new Pose(96, 30, Math.toRadians(90));
-
 
     // ==========  Paths  ==========
     private PathChain toIntakeA1, intakingA1, shootA1, toIntakeB, intakingB, shootB, park;
@@ -71,7 +85,6 @@ public class FarSideRed extends OpMode{
                 .addPath(new BezierLine(scorePose, parkPose))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), parkPose.getHeading())
                 .build();
-
     }
 
     // ========== Main Auto Switch Case ==========
@@ -79,13 +92,18 @@ public class FarSideRed extends OpMode{
         switch(pathState) {
             case 0:
                 if (!follower.isBusy()) {
+                    follower.setMaxPower(globalMaxPower);
                     follower.followPath(toIntakeA1, true);
+                    mechanisms.launcher.setRPM(4750);
+                    mechanisms.intake.start();
+                    mechanisms.intake.reverse();
                     pathState = 1;
                 }
                 break;
 
             case 1:
                 if (!follower.isBusy()) {
+                    follower.setMaxPower(intakingMaxPower);
                     follower.followPath(intakingA1, false);
                     pathState = 2;
                 }
@@ -93,54 +111,84 @@ public class FarSideRed extends OpMode{
 
             case 2:
                 if (!follower.isBusy()) {
+                    follower.setMaxPower(globalMaxPower);
                     follower.followPath(shootA1, false);
+                    shotsFired = 0;
                     pathState = 3;
                 }
                 break;
 
             case 3:
                 if (!follower.isBusy()) {
-                    follower.followPath(toIntakeB, true);
-                    pathState = 4;
+                    if (launchAllState == LaunchAllState.Inactive) {
+                        launchAllState = LaunchAllState.ReadyToFire;
+                    } else if (launchAllState == LaunchAllState.Complete) {
+                        launchAllState = LaunchAllState.Inactive;
+                        pathState = 4;
+                    }
                 }
                 break;
 
             case 4:
                 if (!follower.isBusy()) {
-                    follower.followPath(intakingB, false);
+                    follower.followPath(toIntakeB, true);
                     pathState = 5;
                 }
                 break;
 
             case 5:
                 if (!follower.isBusy()) {
-                    follower.followPath(shootB, false);
+                    follower.setMaxPower(intakingMaxPower);
+                    follower.followPath(intakingB, false);
                     pathState = 6;
                 }
                 break;
 
             case 6:
-                if (!follower.isBusy()){
-                    follower.followPath(park, true);
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(.5);
+                    follower.followPath(shootB, false);
+                    shotsFired = 0;
                     pathState = 7;
                 }
                 break;
 
+            case 7:
+                if (!follower.isBusy()) {
+                    if (launchAllState == LaunchAllState.Inactive) {
+                        launchAllState = LaunchAllState.ReadyToFire;
+                    } else if (launchAllState == LaunchAllState.Complete) {
+                        launchAllState = LaunchAllState.Inactive;
+                        pathState = 8;
+                    }
+                }
+                break;
+
+            case 8:
+                if(!follower.isBusy()) {
+                    follower.followPath(park, true);
+                    mechanisms.launcher.stop();
+                    mechanisms.intake.stop();
+                    pathState = -1;
+                }
+                break;
         }
     }
 
     @Override
     public void loop() {
-
         follower.update();
         autonomousPathUpdate();
 
-
+        mechanisms.update();
+        launchAll();
 
         telemetry.addData("path state", pathState);
         telemetry.addData("x", follower.getPose().getX());
         telemetry.addData("y", follower.getPose().getY());
         telemetry.addData("heading", follower.getPose().getHeading());
+        telemetry.addData("Launch All State", launchAllState);
+        telemetry.addData("Shots Fired", shotsFired);
         telemetry.update();
     }
 
@@ -152,11 +200,14 @@ public class FarSideRed extends OpMode{
         follower = Constants.createFollower(hardwareMap);
         buildPaths();
         follower.setStartingPose(startPose);
+
+        mechanisms = new DECODEMechanisms(hardwareMap);
+        aprilTagDetector = new AprilTagDetector(hardwareMap);
     }
 
     @Override
     public void init_loop() {
-        telemetry.addLine("DO NOT RUN WITH BATTERY BELOW 13 VOLTS!!!!!");
+        telemetry.addLine("DO NOT RUN WITH BATTERY BELOW 13 VOLTS!!!");
         telemetry.addLine("IF YOU DO I WILL FIND YOU :)");
         telemetry.update();
     }
@@ -165,5 +216,36 @@ public class FarSideRed extends OpMode{
     public void start() {
         opmodeTimer.resetTimer();
         pathState = 0;
+        shotsFired = 0;
+    }
+
+    public void launchAll(){
+        switch (launchAllState){
+            case Inactive:
+                break;
+
+            case ReadyToFire:
+                mechanisms.launcher.kick();
+                launchAllState = LaunchAllState.Firing;
+                kickerTimer.reset();
+                break;
+
+            case Firing:
+                if (kickerTimer.milliseconds() > 1000 && !mechanisms.launcher.isKicking()) {
+                    shotsFired++;
+                    if (shotsFired >= 3) {
+                        launchAllState = LaunchAllState.Complete;
+                    } else {
+                        launchAllState = LaunchAllState.RotatingSpindexer;
+                    }
+                }
+                break;
+            case RotatingSpindexer:
+                mechanisms.spindexer.increment();
+                launchAllState = LaunchAllState.ReadyToFire;
+                break;
+            case Complete:
+                break;
+        }
     }
 }
