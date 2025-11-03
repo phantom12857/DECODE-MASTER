@@ -21,8 +21,9 @@ public class GoalSideBlue extends OpMode{
     private DECODEMechanisms mechanisms;
     private AprilTagDetector aprilTagDetector;
     private final ElapsedTime kickerTimer = new ElapsedTime();
+    private final ElapsedTime spindexerTimer = new ElapsedTime();
     private double globalMaxPower = 0.8;
-    private double intakingMaxPower = 0.2;
+    private double intakingMaxPower = .225;
     private boolean launchInProgress = false;
     private int shotsFired = 0;
     private int targetSpindexerStep = 0;
@@ -50,12 +51,13 @@ public class GoalSideBlue extends OpMode{
 
     // ========== Poses ==========
     private final Pose startPose = new Pose(43.5, 134.75, Math.toRadians(90));
-    private final Pose scanAndScorePLPose = new Pose(48, 98, Math.toRadians(122));
+    private final Pose scanAndScorePLPose = new Pose(48, 98, Math.toRadians(130));
     private final Pose a3IntakePose = new Pose(52, 84, Math.toRadians(180));
     private final Pose a3EndPose = new Pose(25,84, Math.toRadians(180));
-    private final Pose scorePose = new Pose(48,98, Math.toRadians(122 ));
-    private final Pose a2IntakePose = new Pose(45, 59, Math.toRadians(180));
-    private final Pose a2EndPose = new Pose(20,59, Math.toRadians(180));
+    private final Pose scorePose = new Pose(48,98, Math.toRadians(130));
+    private final Pose a2IntakePose = new Pose(45, 61, Math.toRadians(180));
+    private final Pose a2EndPose = new Pose(20,61, Math.toRadians(180));
+    private final Pose a2ControlPose = new Pose(60, 60, Math.toRadians(0));
     private final Pose parkPose = new Pose(35, 70, Math.toRadians(180));
 
     // ==========  Paths  ==========
@@ -93,7 +95,7 @@ public class GoalSideBlue extends OpMode{
                 .build();
 
         scoreA2 = follower.pathBuilder()
-                .addPath(new BezierLine(a2EndPose, scorePose))
+                .addPath(new BezierCurve(a2EndPose, a2ControlPose, scorePose))
                 .setLinearHeadingInterpolation(a2EndPose.getHeading(), scorePose.getHeading())
                 .build();
 
@@ -114,6 +116,7 @@ public class GoalSideBlue extends OpMode{
                     mechanisms.setLauncherRPM(3250);
                     mechanisms.startIntake();
                     mechanisms.reverseIntake();
+                    shotsFired = 0;
                     pathState = 1;
                 }
                 break;
@@ -135,6 +138,8 @@ public class GoalSideBlue extends OpMode{
 
             case 2:
                 if (!follower.isBusy()) {
+                    follower.setMaxPower(.5);
+                    mechanisms.ballsLoaded = 0;
                     follower.followPath(toIntakeA3, false);
                     pathState = 3;
                 }
@@ -152,34 +157,67 @@ public class GoalSideBlue extends OpMode{
                 if (!follower.isBusy()) {
                     follower.setMaxPower(globalMaxPower);
                     follower.followPath(scoreA3, true);
+                    shotsFired = 0;
                     pathState = 5;
                 }
                 break;
 
             case 5:
+                // Wait for launcher to get up to speed and launch 3 pixels
                 if (!follower.isBusy()) {
-                    follower.followPath(toIntakeA2, false);
-                    pathState = 6;
+                    if (launchAllState == LaunchAllState.Inactive) {
+                        shotsFired = 0;
+                        // Start by homing the spindexer to ensure we know its position
+                        launchAllState = LaunchAllState.HomingSpindexer;
+                        mechanisms.homeSpindexer();
+                    } else if (launchAllState == LaunchAllState.Complete) {
+                        // All 3 shots are done, continue to next path
+                        launchAllState = LaunchAllState.Inactive;
+                        pathState = 6;
+                    }
                 }
                 break;
 
             case 6:
                 if (!follower.isBusy()) {
-                    follower.setMaxPower(intakingMaxPower);
-                    follower.followPath(intakingA2, false);
+                    follower.followPath(toIntakeA2, false);
                     pathState = 7;
                 }
                 break;
 
             case 7:
-                if (!follower.isBusy()){
-                    follower.setMaxPower(globalMaxPower);
-                    follower.followPath(scoreA2, true);
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(intakingMaxPower);
+                    follower.followPath(intakingA2, false);
                     pathState = 8;
                 }
                 break;
 
             case 8:
+                if (!follower.isBusy()){
+                    follower.setMaxPower(globalMaxPower);
+                    follower.followPath(scoreA2, true);
+                    shotsFired = 0;
+                    pathState = 9;
+                }
+                break;
+
+            case 9:
+                // Wait for launcher to get up to speed and launch 3 pixels
+                if (!follower.isBusy()) {
+                    if (launchAllState == LaunchAllState.Inactive) {
+                        // Start by homing the spindexer to ensure we know its position
+                        launchAllState = LaunchAllState.HomingSpindexer;
+                        mechanisms.homeSpindexer();
+                    } else if (launchAllState == LaunchAllState.Complete) {
+                        // All 3 shots are done, continue to next path
+                        launchAllState = LaunchAllState.Inactive;
+                        pathState = 10;
+                    }
+                }
+                break;
+
+            case 10:
                 if(!follower.isBusy()) {
                     follower.followPath(park, false);
                     mechanisms.stopAllMotors();
@@ -245,10 +283,6 @@ public class GoalSideBlue extends OpMode{
         targetSpindexerStep = 0;
     }
 
-    @Override
-    public void stop(){
-        mechanisms.stopAllMotors();
-    }
 
     public void launchAll(){
         switch (launchAllState){

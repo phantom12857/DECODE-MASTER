@@ -41,7 +41,7 @@ public class DECODEMechanisms {
     private DistanceSensor spindexerDistanceSensor;
     private DigitalChannel spindexerLimitSwitch = null;
     private int spindexerStep = 0;
-    private int ballsLoaded = 0;
+    public int ballsLoaded = 0;
     private boolean spindexerMoving = true;
     private boolean homing = false;
     private boolean useLimitSwitch = true;
