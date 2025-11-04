@@ -17,6 +17,9 @@ public class TeleOpController {
     private final double REGRESSION_SLOPE = 13.98485;
     private final double REGRESSION_Y_INT = 2834.57576;
 
+    // Alliance configuration - set this based on your alliance
+    private boolean isBlueAlliance = true;
+
     // Button debouncers for each button
     private final ButtonDebouncer g1RightBumper = new ButtonDebouncer();
     private final ButtonDebouncer g1LeftBumper = new ButtonDebouncer();
@@ -43,7 +46,18 @@ public class TeleOpController {
         this.telemetry = telemetry;
     }
 
+    /**
+     * Set the alliance color for AprilTag detection
+     * @param isBlue true for blue alliance, false for red
+     */
+    public void setAlliance(boolean isBlue) {
+        this.isBlueAlliance = isBlue;
+    }
+
     public void update() {
+        // Update AprilTag detection
+        aprilTagDetector.update();
+
         // Update all button debouncers
         updateButtonDebouncers();
 
@@ -152,9 +166,11 @@ public class TeleOpController {
             mechanisms.launcher.setRPM(4500);
         }
 
-        // Auto RPM based on AprilTag distance
-        double distanceToApriltag = aprilTagDetector.getDistance();
-        desiredRPM = distanceToApriltag * REGRESSION_SLOPE + REGRESSION_Y_INT;
+        // Auto RPM based on AprilTag distance - FIXED LINE
+        double distanceToApriltag = aprilTagDetector.getBackboardDistance(isBlueAlliance);
+        if (distanceToApriltag > 0) {
+            desiredRPM = distanceToApriltag * REGRESSION_SLOPE + REGRESSION_Y_INT;
+        }
 
         if (g2LeftBumper.wasPressedThisCycle()) {
             mechanisms.launcher.setRPM(desiredRPM);
@@ -258,13 +274,22 @@ public class TeleOpController {
 
     public void addTelemetryData(Telemetry telemetry) {
         telemetry.addData("Drive Speed", "%.1fx", driveSpeedModifier);
-        telemetry.addData("Auto RPM Target", "%.0f", desiredRPM);
+
+        // AprilTag telemetry
+        double distance = aprilTagDetector.getBackboardDistance(isBlueAlliance);
+        if (distance > 0) {
+            telemetry.addData("AprilTag Distance", "%.1f inches", distance);
+            telemetry.addData("Auto RPM Target", "%.0f", desiredRPM);
+        } else {
+            telemetry.addData("AprilTag", "No backboard tag detected");
+        }
+
         telemetry.addLine("");
         telemetry.addLine("=== Controls ===");
         telemetry.addData("Drive", "LS: Move, RS: Rotate, Y: Toggle Field-Centric");
         telemetry.addData("Intake", "RT: Forward, LT: Reverse");
         telemetry.addData("Spindexer", "A: Manual Advance, X: Manual Step, Y: Home");
-        telemetry.addData("Launcher", "Dpad: Presets, LB: Auto RPM, Start: Stop");
+        telemetry.addData("Launcher", "Dpad: Presets, LB: Auto RPM, Dpad Down: Stop");
         telemetry.addData("Hood", "RS: Manual, Dpad Up/Down: Move");
         telemetry.addData("Turret", "LS: Manual, Dpad Left/Right: Move");
 
@@ -275,5 +300,8 @@ public class TeleOpController {
         telemetry.addData("G2 B Pressed", g2B.wasPressedThisCycle());
         telemetry.addData("G2 X Pressed", g2X.wasPressedThisCycle());
         telemetry.addData("G2 Y Pressed", g2Y.wasPressedThisCycle());
+
+        // Add AprilTag detection info
+        aprilTagDetector.addTelemetry(telemetry);
     }
 }
