@@ -11,7 +11,6 @@ public class TeleOpController {
     private final AprilTagDetector aprilTagDetector;
     private final Gamepad gamepad1, gamepad2;
     private final Telemetry telemetry;
-
     private double driveSpeedModifier = 1.0;
     private double desiredRPM = 0.0;
     private final double REGRESSION_SLOPE = 13.98485;
