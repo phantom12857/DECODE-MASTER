@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.TeleOP;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.tests.AprilTagDetector;
+import org.firstinspires.ftc.teamcode.Mechanisms.utils.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.Mechanisms.core.DECODEMechanisms;
 import org.firstinspires.ftc.teamcode.Mechanisms.utils.ButtonDebouncer;
 

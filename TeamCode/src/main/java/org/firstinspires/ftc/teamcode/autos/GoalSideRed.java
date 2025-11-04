@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.autos;
 
 import com.pedropathing.follower.Follower;
 import org.firstinspires.ftc.teamcode.Mechanisms.core.DECODEMechanisms;
-import org.firstinspires.ftc.teamcode.tests.AprilTagDetector;
+import org.firstinspires.ftc.teamcode.Mechanisms.utils.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
