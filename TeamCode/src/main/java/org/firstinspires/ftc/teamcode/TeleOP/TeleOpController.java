@@ -54,10 +54,8 @@ public class TeleOpController {
     }
 
     public void update() {
-        // Update AprilTag detection
         aprilTagDetector.update();
 
-        // Update all button debouncers
         updateButtonDebouncers();
 
         handleDriveControls();
