@@ -29,7 +29,7 @@ public class LauncherSystem implements Subsystem {
 
             launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-            kicker.setPosition(1.0); // Retracted position
+            kicker.setPosition(1.1); // Retracted position
 
             pidController = new PIDController(KP, KI, KD);
         } catch (Exception e) {
@@ -62,7 +62,7 @@ public class LauncherSystem implements Subsystem {
                 try {
                     Thread.sleep(500);
                     kicker.setPosition(1.0); // Retract
-                    Thread.sleep(500);
+                    Thread.sleep(750);
                     isKicking = false;
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();

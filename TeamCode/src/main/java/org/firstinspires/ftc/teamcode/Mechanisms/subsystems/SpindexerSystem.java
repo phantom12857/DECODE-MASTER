@@ -21,7 +21,7 @@ public class SpindexerSystem implements Subsystem {
 
     private int currentStep = 0;
     public int ballsLoaded = 0;
-    private boolean autoIntakeEnabled = true;
+    public boolean autoIntakeEnabled = true;
 
     private enum State { IDLE, HOMING, MOVING_TO_STEP }
     private State state = State.IDLE;
@@ -29,7 +29,7 @@ public class SpindexerSystem implements Subsystem {
     private final ElapsedTime timeoutTimer = new ElapsedTime();
     private final ElapsedTime ballCheckTimer = new ElapsedTime();
 
-    private static final double TICKS_PER_STEP = 377.67;
+    private static final double TICKS_PER_STEP = 355;
     private static final double HOMING_POWER = 0.4;
     private static final double MOVING_POWER = 0.5;
 
@@ -131,8 +131,8 @@ public class SpindexerSystem implements Subsystem {
             timeoutTimer.reset();
 
             int targetPos = (int)(step * TICKS_PER_STEP);
-            spindexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             spindexer.setTargetPosition(targetPos);
+            spindexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             spindexer.setPower(MOVING_POWER);
         }
     }

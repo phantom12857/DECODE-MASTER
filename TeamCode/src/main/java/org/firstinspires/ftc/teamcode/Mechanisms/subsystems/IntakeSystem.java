@@ -20,6 +20,7 @@ public class IntakeSystem implements Subsystem {
     public void start() {
         setPower(1.0);
     }
+    public void passiveIntake(){setPower(.4);}
 
     public void reverse() {
         setPower(-1.0);
@@ -47,5 +48,12 @@ public class IntakeSystem implements Subsystem {
     @Override
     public void addTelemetryData(Telemetry telemetry) {
         telemetry.addData("Intake Power", "%.2f", getPower());
+    }
+
+    public boolean isActiveIntake(boolean activeIntake){
+        if(intake.getPower() > 0.4){
+            return true;
+        }
+        else return false;
     }
 }
