@@ -18,10 +18,11 @@ public class GoalSideBlue extends OpMode{
     private DECODEMechanisms mechanisms;
     private AprilTagDetector aprilTagDetector;
     private final ElapsedTime kickerTimer = new ElapsedTime();
+    private final ElapsedTime intakeTimer = new ElapsedTime();
     private double globalMaxPower = 0.9;
-    private double intakingMaxPower = .225;
+    private double intakingMaxPower = .35;
     private int shotsFired = 0;
-    private double minLauncherVelocity = 3200;
+    private double minLauncherVelocity = 3375;
     private double maxLauncherVelocity = 3400;
 
     public enum LaunchAllState {
@@ -48,7 +49,7 @@ public class GoalSideBlue extends OpMode{
     private final Pose a2IntakePose = new Pose(49, 64, Math.toRadians(180));
     private final Pose a2EndPose = new Pose(18,64, Math.toRadians(180));
     private final Pose a2ControlPose = new Pose(60, 60, Math.toRadians(0));
-    private final Pose parkPose = new Pose(35, 70, Math.toRadians(180));
+    private final Pose parkPose = new Pose(35, 94, Math.toRadians(180));
 
     // ==========  Paths  ==========
     private PathChain scanAndScorePL, toIntakeA3, intakingA3, scoreA3, toIntakeA2, intakingA2, scoreA2, park;
@@ -104,7 +105,7 @@ public class GoalSideBlue extends OpMode{
                     follower.setMaxPower(globalMaxPower);
                     follower.followPath(scanAndScorePL, true);
                     mechanisms.spindexer.autoIntakeEnabled = false;
-                    mechanisms.launcher.setRPM(3300);
+                    mechanisms.launcher.setRPM(maxLauncherVelocity);
                     mechanisms.intake.passiveIntake();
                     mechanisms.spindexer.setBallsLoaded(3);
                     shotsFired = 0;
@@ -132,6 +133,7 @@ public class GoalSideBlue extends OpMode{
                     mechanisms.spindexer.autoIntakeEnabled = true;
                     mechanisms.intake.start();
                     follower.followPath(toIntakeA3, false);
+                    intakeTimer.reset();
                     pathState = 3;
                 }
                 break;
@@ -140,7 +142,9 @@ public class GoalSideBlue extends OpMode{
                 if (!follower.isBusy()) {
                     follower.setMaxPower(intakingMaxPower);
                     follower.followPath(intakingA3, false);
-                    pathState = 4;
+                    if(intakeTimer.seconds() > 5){
+                        pathState = 4;
+                    }
                 }
                 break;
 
@@ -163,7 +167,7 @@ public class GoalSideBlue extends OpMode{
                         launchAllState = LaunchAllState.ReadyToFire;
                     } else if (launchAllState == LaunchAllState.Complete) {
                         launchAllState = LaunchAllState.Inactive;
-                        pathState = 6;
+                        pathState = 10;
                     }
                 }
                 break;

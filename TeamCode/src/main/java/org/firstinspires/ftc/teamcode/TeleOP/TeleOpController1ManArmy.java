@@ -1,0 +1,305 @@
+package org.firstinspires.ftc.teamcode.TeleOP;
+
+import com.qualcomm.robotcore.hardware.Gamepad;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.Mechanisms.core.DECODEMechanisms;
+import org.firstinspires.ftc.teamcode.Mechanisms.utils.AprilTagDetector;
+import org.firstinspires.ftc.teamcode.Mechanisms.utils.ButtonDebouncer;
+
+public class TeleOpController1ManArmy {
+    private final DECODEMechanisms mechanisms;
+    private final AprilTagDetector aprilTagDetector;
+    private final Gamepad gamepad1, gamepad2;
+    private final Telemetry telemetry;
+    private double driveSpeedModifier = 1.0;
+    private double desiredRPM = 0.0;
+    private final double REGRESSION_SLOPE = 13.98485;
+    private final double REGRESSION_Y_INT = 2834.57576;
+
+    // Alliance configuration - set this based on your alliance
+    private boolean isBlueAlliance = true;
+
+    // Button debouncers for each button
+    private final ButtonDebouncer g1RightBumper = new ButtonDebouncer();
+    private final ButtonDebouncer g1LeftBumper = new ButtonDebouncer();
+    private final ButtonDebouncer g1Y = new ButtonDebouncer();
+    private final ButtonDebouncer g1A = new ButtonDebouncer();
+    private final ButtonDebouncer g1B = new ButtonDebouncer();
+    private final ButtonDebouncer g2Y = new ButtonDebouncer();
+    private final ButtonDebouncer g1x = new ButtonDebouncer();
+    private final ButtonDebouncer g2LeftBumper = new ButtonDebouncer();
+    private final ButtonDebouncer g1DpadLeft = new ButtonDebouncer();
+    private final ButtonDebouncer g1DpadUp = new ButtonDebouncer();
+    private final ButtonDebouncer g1DpadRight = new ButtonDebouncer();
+    private final ButtonDebouncer g2DpadDown = new ButtonDebouncer();
+    private final ButtonDebouncer g1DpadDown = new ButtonDebouncer();
+    private final ButtonDebouncer g1LeftStick = new ButtonDebouncer();
+    private final ButtonDebouncer g1RightStick = new ButtonDebouncer();
+
+    public TeleOpController1ManArmy(DECODEMechanisms mechanisms, AprilTagDetector aprilTagDetector,
+                                    Gamepad gamepad1, Gamepad gamepad2, Telemetry telemetry) {
+        this.mechanisms = mechanisms;
+        this.aprilTagDetector = aprilTagDetector;
+        this.gamepad1 = gamepad1;
+        this.gamepad2 = gamepad2;
+        this.telemetry = telemetry;
+    }
+
+    /**
+     * Set the alliance color for AprilTag detection
+     * @param isBlue true for blue alliance, false for red
+     */
+    public void setAlliance(boolean isBlue) {
+        this.isBlueAlliance = isBlue;
+    }
+
+    public void update() {
+        aprilTagDetector.update();
+
+        updateButtonDebouncers();
+
+        handleDriveControls();
+        handleIntakeControls();
+        handleSpindexerControls();
+        handleKickerControls();
+        handleLauncherControls();
+        //handleHoodControls();
+        //handleTurretControls();
+        //handleContinuousServoControls();
+        //handleUtilityControls();
+    }
+
+    private void updateButtonDebouncers() {
+        g1RightBumper.update(gamepad1.right_bumper);
+        g1LeftBumper.update(gamepad1.left_bumper);
+        g1Y.update(gamepad1.y);
+        g1A.update(gamepad1.a);
+        g1B.update(gamepad1.b);
+        g1Y.update(gamepad1.y);
+        g1x.update(gamepad1.x);
+        g2LeftBumper.update(gamepad2.left_bumper);
+        g1DpadLeft.update(gamepad2.dpad_left);
+        g1DpadUp.update(gamepad2.dpad_up);
+        g1DpadRight.update(gamepad2.dpad_right);
+        g2DpadDown.update(gamepad2.dpad_down);
+        g1DpadDown.update(gamepad1.dpad_down);
+        g1LeftStick.update(gamepad1.left_stick_button);
+        g1RightStick.update(gamepad1.right_stick_button);
+    }
+
+    private void handleDriveControls() {
+        // Speed modifier controls with debouncing
+        if (g1RightBumper.wasPressedThisCycle()) {
+            driveSpeedModifier = Math.min(1.0, driveSpeedModifier + 0.1);
+        }
+
+        if (g1LeftBumper.wasPressedThisCycle()) {
+            driveSpeedModifier = Math.max(0.1, driveSpeedModifier - 0.1);
+        }
+
+        double y = -gamepad1.left_stick_y * driveSpeedModifier;
+        double x = gamepad1.left_stick_x * driveSpeedModifier;
+        double rx = gamepad1.right_stick_x * driveSpeedModifier;
+
+        // Toggle field-centric with debouncing
+        /*if (g1Y.wasPressedThisCycle()) {
+            mechanisms.drive.toggleFieldCentric();
+        }*/
+
+        // Reset heading offset
+        /*if (gamepad1.b) {
+            mechanisms.drive.resetHeadingOffset();
+        }*/
+
+        mechanisms.drive.driveMecanum(y, x, rx);
+    }
+
+    private void handleIntakeControls() {
+        if (gamepad1.right_trigger > 0.1) {
+            mechanisms.intake.start();
+        } else if (gamepad1.left_trigger > 0.1) {
+            mechanisms.intake.reverse();
+        } else {
+            mechanisms.intake.passiveIntake();
+        }
+    }
+
+    private void handleSpindexerControls() {
+        // Manual advance with debouncing
+        /*if (g1A.wasPressedThisCycle() && !mechanisms.spindexer.isMoving()) {
+            mechanisms.spindexer.increment();
+        }*/
+
+        // Manual step control with debouncing
+        if (g1B.wasPressedThisCycle() && !mechanisms.spindexer.isMoving()) {
+            int currentStep = mechanisms.spindexer.getCurrentStep();
+            int nextStep = (currentStep + 1) % 3;
+            mechanisms.spindexer.moveToStep(nextStep);
+        }
+
+        // Home spindexer with debouncing
+        if (g1Y.wasPressedThisCycle()) {
+            mechanisms.spindexer.home();
+        }
+    }
+
+    private void handleKickerControls() {
+        if (g1x.wasPressedThisCycle()) {
+            mechanisms.launcher.kick();
+        }
+    }
+
+    private void handleLauncherControls() {
+        // Preset RPM controls with debouncing
+        if (g1DpadLeft.wasPressedThisCycle()) {
+            mechanisms.launcher.setRPM(3250);
+        }
+
+        if (g1DpadUp.wasPressedThisCycle()) {
+            mechanisms.launcher.setRPM(3750);
+        }
+
+        if (g1DpadRight.wasPressedThisCycle()) {
+            mechanisms.launcher.setRPM(4650);
+        }
+
+        // Auto RPM based on AprilTag distance - FIXED LINE
+        double distanceToApriltag = aprilTagDetector.getBackboardDistance(isBlueAlliance);
+        if (distanceToApriltag > 0) {
+            desiredRPM = distanceToApriltag * REGRESSION_SLOPE + REGRESSION_Y_INT;
+        }
+
+        if (g2LeftBumper.wasPressedThisCycle()) {
+            mechanisms.launcher.setRPM(desiredRPM);
+        }
+
+        // Stop launcher with debouncing
+        if (g2DpadDown.wasPressedThisCycle()) {
+            mechanisms.launcher.stop();
+        }
+    }
+
+    /*private void handleHoodControls() {
+        // Manual hood control
+        double stick = -gamepad2.right_stick_y;
+        if (Math.abs(stick) > 0.1) {
+            mechanisms.hood.setPower(stick * 0.8);
+        } else {
+            mechanisms.hood.stop();
+        }
+
+        // Preset hood movements with debouncing
+        if (g2DpadUp.wasPressedThisCycle()) {
+            mechanisms.hood.setPower(0.6);
+        }
+        if (g2DpadDown.wasPressedThisCycle()) {
+            mechanisms.hood.setPower(-0.6);
+        }
+
+        // Stop when buttons released
+        if (g2DpadUp.wasReleased()) {
+            mechanisms.hood.stop();
+        }
+        if (g2DpadDown.wasReleased()) {
+            mechanisms.hood.stop();
+        }
+    }*/
+
+    /*private void handleTurretControls() {
+        // Manual turret control
+        double stick = gamepad2.left_stick_x;
+        if (Math.abs(stick) > 0.1) {
+            mechanisms.turret.setPower(stick * 0.8);
+        } else {
+            mechanisms.turret.stop();
+        }
+
+        // Preset turret movements with debouncing
+        if (g2DpadLeft.wasPressedThisCycle()) {
+            mechanisms.turret.setPower(-0.6);
+        }
+        if (g2DpadRight.wasPressedThisCycle()) {
+            mechanisms.turret.setPower(0.6);
+        }
+
+        // Stop when buttons released
+        if (g2DpadLeft.wasReleased()) {
+            mechanisms.turret.stop();
+        }
+        if (g2DpadRight.wasReleased()) {
+            mechanisms.turret.stop();
+        }
+    }*/
+
+    /*private void handleContinuousServoControls() {
+        // Continuous servo 1 with triggers
+        if (gamepad1.right_trigger > 0.1) {
+            mechanisms.continuousServos.setPosition(1, 0.5);
+        } else if (gamepad1.left_trigger > 0.1) {
+            mechanisms.continuousServos.setPosition(1, -0.5);
+        } else {
+            mechanisms.continuousServos.setPosition(1, 0);
+        }
+
+        // Continuous servo 2 with triggers
+        if (gamepad2.right_trigger > 0.1) {
+            mechanisms.continuousServos.setPosition(2, 0.5);
+        } else if (gamepad2.left_trigger > 0.1) {
+            mechanisms.continuousServos.setPosition(2, -0.5);
+        } else {
+            mechanisms.continuousServos.setPosition(2, 0);
+        }
+
+        // Precise positioning with debouncing
+        if (g1LeftStick.wasPressedThisCycle()) {
+            double currentPos = mechanisms.continuousServos.getPositionRevolutions(1);
+            mechanisms.continuousServos.setPosition(1, currentPos + 0.25);
+        }
+
+        if (g1RightStick.wasPressedThisCycle()) {
+            double currentPos = mechanisms.continuousServos.getPositionRevolutions(1);
+            mechanisms.continuousServos.setPosition(1, currentPos - 0.25);
+        }
+    }*/
+
+    /*private void handleUtilityControls() {
+        // Manual home spindexer with debouncing
+        if (g1DpadDown.wasPressedThisCycle()) {
+            mechanisms.spindexer.home();
+        }
+    }*/
+
+    public void addTelemetryData(Telemetry telemetry) {
+        telemetry.addData("Drive Speed", "%.1fx", driveSpeedModifier);
+
+        // AprilTag telemetry
+        double distance = aprilTagDetector.getBackboardDistance(isBlueAlliance);
+        if (distance > 0) {
+            telemetry.addData("AprilTag Distance", "%.1f inches", distance);
+            telemetry.addData("Auto RPM Target", "%.0f", desiredRPM);
+        } else {
+            telemetry.addData("AprilTag", "No backboard tag detected");
+        }
+
+        telemetry.addLine("");
+        telemetry.addLine("=== Controls ===");
+        telemetry.addData("Drive", "LS: Move, RS: Rotate, Y: Toggle Field-Centric");
+        telemetry.addData("Intake", "RT: Forward, LT: Reverse");
+        telemetry.addData("Spindexer", "A: Manual Advance, X: Manual Step, Y: Home");
+        telemetry.addData("Launcher", "Dpad: Presets, LB: Auto RPM, Dpad Down: Stop");
+        telemetry.addData("Hood", "RS: Manual, Dpad Up/Down: Move");
+        telemetry.addData("Turret", "LS: Manual, Dpad Left/Right: Move");
+
+        // Debug button states
+        telemetry.addLine("");
+        telemetry.addLine("=== Button Debug ===");
+        //telemetry.addData("G2 A Pressed", g2A.wasPressedThisCycle());
+        telemetry.addData("G2 B Pressed", g1x.wasPressedThisCycle());
+        //telemetry.addData("G2 X Pressed", g2X.wasPressedThisCycle());
+        telemetry.addData("G2 Y Pressed", g2Y.wasPressedThisCycle());
+
+        // Add AprilTag detection info
+        aprilTagDetector.addTelemetry(telemetry);
+    }
+}

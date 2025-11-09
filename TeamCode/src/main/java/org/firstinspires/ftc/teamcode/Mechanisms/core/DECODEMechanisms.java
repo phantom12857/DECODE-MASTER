@@ -34,6 +34,7 @@ public class DECODEMechanisms {
     public void update() {
         spindexer.update();
         launcher.update();
+        hood.update();
         //continuousServos.update();
         // Hood PID is handled automatically in setHoodPower
     }
