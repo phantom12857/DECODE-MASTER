@@ -131,8 +131,9 @@ public class SpindexerSystem implements Subsystem {
             timeoutTimer.reset();
 
             int targetPos = (int)(step * TICKS_PER_STEP);
-            spindexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
             spindexer.setTargetPosition(targetPos);
+            spindexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             spindexer.setPower(MOVING_POWER);
         }
     }

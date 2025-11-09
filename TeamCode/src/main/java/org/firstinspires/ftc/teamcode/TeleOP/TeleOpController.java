@@ -65,7 +65,7 @@ public class TeleOpController {
         handleLauncherControls();
         handleHoodControls();
         handleTurretControls();
-        handleContinuousServoControls();
+        //handleContinuousServoControls();
         handleUtilityControls();
     }
 
@@ -231,7 +231,7 @@ public class TeleOpController {
         }
     }
 
-    private void handleContinuousServoControls() {
+    /*private void handleContinuousServoControls() {
         // Continuous servo 1 with triggers
         if (gamepad1.right_trigger > 0.1) {
             mechanisms.continuousServos.setPosition(1, 0.5);
@@ -260,7 +260,7 @@ public class TeleOpController {
             double currentPos = mechanisms.continuousServos.getPositionRevolutions(1);
             mechanisms.continuousServos.setPosition(1, currentPos - 0.25);
         }
-    }
+    }*/
 
     private void handleUtilityControls() {
         // Manual home spindexer with debouncing

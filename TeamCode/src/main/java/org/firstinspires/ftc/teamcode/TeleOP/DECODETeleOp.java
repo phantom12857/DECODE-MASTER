@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.Mechanisms.utils.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.Mechanisms.core.DECODEMechanisms;
 
 @TeleOp(name = "DECODETeleOp", group = "Linear OpMode")
-public class DECODETeleOp extends LinearOpMode {
+public class  DECODETeleOp extends LinearOpMode {
     private DECODEMechanisms mechanisms;
     private AprilTagDetector aprilTagDetector;
     private final ElapsedTime runtime = new ElapsedTime();

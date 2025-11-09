@@ -15,7 +15,7 @@ public class DECODEMechanisms {
     public final IntakeSystem intake;
     public final HoodSystem hood;
     public final TurretSystem turret;
-    public final ContinuousServoSystem continuousServos;
+    //public final ContinuousServoSystem continuousServos;
 
     public DECODEMechanisms(HardwareMap hardwareMap) {
         // Initialize subsystems
@@ -25,7 +25,7 @@ public class DECODEMechanisms {
         this.intake = new IntakeSystem(hardwareMap);
         this.hood = new HoodSystem(hardwareMap);
         this.turret = new TurretSystem(hardwareMap);
-        this.continuousServos = new ContinuousServoSystem(hardwareMap);
+        //this.continuousServos = new ContinuousServoSystem(hardwareMap);
     }
 
     /**
@@ -34,7 +34,7 @@ public class DECODEMechanisms {
     public void update() {
         spindexer.update();
         launcher.update();
-        continuousServos.update();
+        //continuousServos.update();
         // Hood PID is handled automatically in setHoodPower
     }
 
@@ -48,7 +48,7 @@ public class DECODEMechanisms {
         launcher.stop();
         hood.stop();
         turret.stop();
-        continuousServos.stop();
+        //continuousServos.stop();
     }
 
     /**
@@ -61,6 +61,6 @@ public class DECODEMechanisms {
         intake.addTelemetryData(telemetry);
         hood.addTelemetryData(telemetry);
         turret.addTelemetryData(telemetry);
-        continuousServos.addTelemetryData(telemetry);
+        //continuousServos.addTelemetryData(telemetry);
     }
 }
