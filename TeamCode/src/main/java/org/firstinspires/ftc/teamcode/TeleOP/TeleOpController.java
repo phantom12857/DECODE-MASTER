@@ -26,7 +26,7 @@ public class TeleOpController {
     private final ButtonDebouncer g2A = new ButtonDebouncer();
     private final ButtonDebouncer g2X = new ButtonDebouncer();
     private final ButtonDebouncer g2Y = new ButtonDebouncer();
-    private final ButtonDebouncer g1x = new ButtonDebouncer();
+    private final ButtonDebouncer g2B = new ButtonDebouncer();
     private final ButtonDebouncer g2LeftBumper = new ButtonDebouncer();
     private final ButtonDebouncer g2DpadLeft = new ButtonDebouncer();
     private final ButtonDebouncer g2DpadUp = new ButtonDebouncer();
@@ -76,7 +76,7 @@ public class TeleOpController {
         g2A.update(gamepad2.a);
         g2X.update(gamepad2.x);
         g2Y.update(gamepad2.y);
-        g1x.update(gamepad1.x);
+        g2B.update(gamepad2.b);
         g2LeftBumper.update(gamepad2.left_bumper);
         g2DpadLeft.update(gamepad2.dpad_left);
         g2DpadUp.update(gamepad2.dpad_up);
@@ -120,7 +120,7 @@ public class TeleOpController {
         } else if (gamepad2.left_trigger > 0.1) {
             mechanisms.intake.reverse();
         } else {
-            mechanisms.intake.passiveIntake();
+            mechanisms.intake.stop();
         }
     }
 
@@ -144,7 +144,7 @@ public class TeleOpController {
     }
 
     private void handleKickerControls() {
-        if (g1x.wasPressedThisCycle()) {
+        if (g2B.wasPressedThisCycle()) {
             mechanisms.launcher.kick();
         }
     }
@@ -160,7 +160,7 @@ public class TeleOpController {
         }
 
         if (g2DpadRight.wasPressedThisCycle()) {
-            mechanisms.launcher.setRPM(4650);
+            mechanisms.launcher.setRPM(4500);
         }
 
         // Auto RPM based on AprilTag distance - FIXED LINE
@@ -294,7 +294,7 @@ public class TeleOpController {
         telemetry.addLine("");
         telemetry.addLine("=== Button Debug ===");
         telemetry.addData("G2 A Pressed", g2A.wasPressedThisCycle());
-        telemetry.addData("G2 B Pressed", g1x.wasPressedThisCycle());
+        telemetry.addData("G2 B Pressed", g2B.wasPressedThisCycle());
         telemetry.addData("G2 X Pressed", g2X.wasPressedThisCycle());
         telemetry.addData("G2 Y Pressed", g2Y.wasPressedThisCycle());
 

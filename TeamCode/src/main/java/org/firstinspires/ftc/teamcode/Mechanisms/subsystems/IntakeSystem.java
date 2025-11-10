@@ -26,6 +26,7 @@ public class IntakeSystem implements Subsystem {
         setPower(-1.0);
     }
 
+
     public void stop() {
         setPower(0);
     }

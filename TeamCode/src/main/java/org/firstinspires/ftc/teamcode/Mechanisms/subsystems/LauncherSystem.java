@@ -13,6 +13,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 public class LauncherSystem implements Subsystem {
     private final DcMotorEx launcher;
     private final Servo kicker;
+    public final Servo light;
 
     private double targetRPM = 0;
     private boolean isKicking = false;
@@ -26,6 +27,7 @@ public class LauncherSystem implements Subsystem {
         try {
             launcher = hardwareMap.get(DcMotorEx.class, "launcher");
             kicker = hardwareMap.get(Servo.class, "kicker");
+            light = hardwareMap.get(Servo.class, "light");
 
             launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -85,6 +87,7 @@ public class LauncherSystem implements Subsystem {
                 targetRPM, getActualRPM());
         telemetry.addData("Kicker", isKicking ? "KICKING" : "READY");
     }
+
 
     // Getters
     public double getTargetRPM() { return targetRPM; }

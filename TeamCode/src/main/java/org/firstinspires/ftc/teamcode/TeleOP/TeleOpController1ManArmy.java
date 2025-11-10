@@ -37,7 +37,7 @@ public class TeleOpController1ManArmy {
     private final ButtonDebouncer g1LeftStick = new ButtonDebouncer();
     private final ButtonDebouncer g1RightStick = new ButtonDebouncer();
 
-    public TeleOpController1ManArmy(DECODEMechanisms mechanisms, AprilTagDetector aprilTagDetector,
+    public TeleOpController1ManArmy (DECODEMechanisms mechanisms, AprilTagDetector aprilTagDetector,
                                     Gamepad gamepad1, Gamepad gamepad2, Telemetry telemetry) {
         this.mechanisms = mechanisms;
         this.aprilTagDetector = aprilTagDetector;
@@ -79,10 +79,7 @@ public class TeleOpController1ManArmy {
         g1Y.update(gamepad1.y);
         g1x.update(gamepad1.x);
         g2LeftBumper.update(gamepad2.left_bumper);
-        g1DpadLeft.update(gamepad2.dpad_left);
-        g1DpadUp.update(gamepad2.dpad_up);
-        g1DpadRight.update(gamepad2.dpad_right);
-        g2DpadDown.update(gamepad2.dpad_down);
+        g2DpadDown.update(gamepad1.dpad_down);
         g1DpadDown.update(gamepad1.dpad_down);
         g1LeftStick.update(gamepad1.left_stick_button);
         g1RightStick.update(gamepad1.right_stick_button);
@@ -175,10 +172,42 @@ public class TeleOpController1ManArmy {
         }
 
         // Stop launcher with debouncing
-        if (g2DpadDown.wasPressedThisCycle()) {
             mechanisms.launcher.stop();
         }
+
+    public void addTelemetryData(Telemetry telemetry) {
+        telemetry.addData("Drive Speed", "%.1fx", driveSpeedModifier);
+
+        // AprilTag telemetry
+        double distance = aprilTagDetector.getBackboardDistance(isBlueAlliance);
+        if (distance > 0) {
+            telemetry.addData("AprilTag Distance", "%.1f inches", distance);
+            telemetry.addData("Auto RPM Target", "%.0f", desiredRPM);
+        } else {
+            telemetry.addData("AprilTag", "No backboard tag detected");
+        }
+
+        telemetry.addLine("");
+        telemetry.addLine("=== Controls ===");
+        telemetry.addData("Drive", "LS: Move, RS: Rotate, Y: Toggle Field-Centric");
+        telemetry.addData("Intake", "RT: Forward, LT: Reverse");
+        telemetry.addData("Spindexer", "A: Manual Advance, X: Manual Step, Y: Home");
+        telemetry.addData("Launcher", "Dpad: Presets, LB: Auto RPM, Dpad Down: Stop");
+        telemetry.addData("Hood", "RS: Manual, Dpad Up/Down: Move");
+        telemetry.addData("Turret", "LS: Manual, Dpad Left/Right: Move");
+
+        // Debug button states
+        telemetry.addLine("");
+        telemetry.addLine("=== Button Debug ===");
+        //telemetry.addData("G2 A Pressed", g2A.wasPressedThisCycle());
+        telemetry.addData("G2 B Pressed", g1x.wasPressedThisCycle());
+        //telemetry.addData("G2 X Pressed", g2X.wasPressedThisCycle());
+        telemetry.addData("G2 Y Pressed", g2Y.wasPressedThisCycle());
+
+        // Add AprilTag detection info
+        aprilTagDetector.addTelemetry(telemetry);
     }
+}
 
     /*private void handleHoodControls() {
         // Manual hood control
@@ -269,37 +298,3 @@ public class TeleOpController1ManArmy {
             mechanisms.spindexer.home();
         }
     }*/
-
-    public void addTelemetryData(Telemetry telemetry) {
-        telemetry.addData("Drive Speed", "%.1fx", driveSpeedModifier);
-
-        // AprilTag telemetry
-        double distance = aprilTagDetector.getBackboardDistance(isBlueAlliance);
-        if (distance > 0) {
-            telemetry.addData("AprilTag Distance", "%.1f inches", distance);
-            telemetry.addData("Auto RPM Target", "%.0f", desiredRPM);
-        } else {
-            telemetry.addData("AprilTag", "No backboard tag detected");
-        }
-
-        telemetry.addLine("");
-        telemetry.addLine("=== Controls ===");
-        telemetry.addData("Drive", "LS: Move, RS: Rotate, Y: Toggle Field-Centric");
-        telemetry.addData("Intake", "RT: Forward, LT: Reverse");
-        telemetry.addData("Spindexer", "A: Manual Advance, X: Manual Step, Y: Home");
-        telemetry.addData("Launcher", "Dpad: Presets, LB: Auto RPM, Dpad Down: Stop");
-        telemetry.addData("Hood", "RS: Manual, Dpad Up/Down: Move");
-        telemetry.addData("Turret", "LS: Manual, Dpad Left/Right: Move");
-
-        // Debug button states
-        telemetry.addLine("");
-        telemetry.addLine("=== Button Debug ===");
-        //telemetry.addData("G2 A Pressed", g2A.wasPressedThisCycle());
-        telemetry.addData("G2 B Pressed", g1x.wasPressedThisCycle());
-        //telemetry.addData("G2 X Pressed", g2X.wasPressedThisCycle());
-        telemetry.addData("G2 Y Pressed", g2Y.wasPressedThisCycle());
-
-        // Add AprilTag detection info
-        aprilTagDetector.addTelemetry(telemetry);
-    }
-}
