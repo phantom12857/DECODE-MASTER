@@ -15,7 +15,7 @@ import org.firstinspires.ftc.teamcode.Mechanisms.utils.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Autonomous
-public class FarSideBlue extends OpMode{
+public class FarSideRed extends OpMode{
     private DECODEMechanisms mechanisms;
     private AprilTagDetector aprilTagDetector;
     private final ElapsedTime intakeTimer = new ElapsedTime();
@@ -43,15 +43,15 @@ public class FarSideBlue extends OpMode{
     private int pathState;
 
     // ========== Poses ==========
-    private final Pose startPose = new Pose(51.75, 8.625, Math.toRadians(90));
-    private final Pose pLPose = new Pose(51.75, 14, Math.toRadians(106));
-    private final Pose a1IntakePose = new Pose(45, 33, Math.toRadians(180));
-    private final Pose a1EndPose = new Pose(15, 33, Math.toRadians(180));
-    private final Pose scorePose = new Pose(51.75,14, Math.toRadians(112));
-    private final Pose bIntakePose = new Pose(20,25, Math.toRadians(218));
-    private final Pose bIntakeControlPose = new Pose(40, 25, Math.toRadians(225));
-    private final Pose bEndPose = new Pose(14,10, Math.toRadians(218));
-    private final Pose parkPose = new Pose(44, 30, Math.toRadians(90));
+    private final Pose startPose = new Pose(88.25, 8.625, Math.toRadians(90));
+    private final Pose pLPose = new Pose(88.25, 14, Math.toRadians(73));
+    private final Pose a1IntakePose = new Pose(95, 38, Math.toRadians(0));
+    private final Pose a1EndPose = new Pose(125, 38, Math.toRadians(0));
+    private final Pose scorePose = new Pose(88.25,14, Math.toRadians(70));
+    private final Pose bIntakePose = new Pose(120,25, Math.toRadians(38));
+    private final Pose bIntakeControlPose = new Pose(100, 25, Math.toRadians(38));
+    private final Pose bEndPose = new Pose(126,10, Math.toRadians(38));
+    private final Pose parkPose = new Pose(96, 30, Math.toRadians(90));
 
     // ==========  Paths  ==========
     private PathChain scorePL, toIntakeA1, intakingA1, scoreA1, toIntakeB, intakingB, scoreB, park;

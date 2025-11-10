@@ -20,8 +20,9 @@ public class GoalSideRed extends OpMode{
     private AprilTagDetector aprilTagDetector;
     private final ElapsedTime kickerTimer = new ElapsedTime();
     private final ElapsedTime intakeTimer = new ElapsedTime();
+    private final ElapsedTime shotTimer = new ElapsedTime();
     private double globalMaxPower = 0.9;
-    private double intakingMaxPower = .35;
+    private double intakingMaxPower = .25;
     private int shotsFired = 0;
     private double minLauncherVelocity = 3375;
     private double maxLauncherVelocity = 3400;
@@ -44,7 +45,7 @@ public class GoalSideRed extends OpMode{
     // ========== Poses ==========
     private final Pose startPose = new Pose(96.5, 134.75, Math.toRadians(90));
     private final Pose scanAndScorePLPose = new Pose(92, 98, Math.toRadians(45));
-    private final Pose a3IntakePose = new Pose(88, 87, Math.toRadians(0));
+    private final Pose a3IntakePose = new Pose(92, 87, Math.toRadians(0));
     private final Pose a3EndPose = new Pose(116,87, Math.toRadians(0));
     private final Pose scorePose = new Pose(92,98, Math.toRadians(45));
     private final Pose a2IntakePose = new Pose(91, 64, Math.toRadians(0));
@@ -105,6 +106,7 @@ public class GoalSideRed extends OpMode{
                 if (!follower.isBusy()) {
                     follower.setMaxPower(globalMaxPower);
                     follower.followPath(scanAndScorePL, true);
+                    shotTimer.reset();
                     mechanisms.spindexer.autoIntakeEnabled = false;
                     mechanisms.launcher.setRPM(maxLauncherVelocity);
                     mechanisms.intake.passiveIntake();
@@ -116,7 +118,7 @@ public class GoalSideRed extends OpMode{
 
             case 1:
                 // Wait for launcher to get up to speed and launch 3 pixels
-                if (!follower.isBusy()) {
+                if (!follower.isBusy() && shotTimer.seconds() > 3) {
                     if (launchAllState == LaunchAllState.Inactive && !mechanisms.spindexer.isMoving()) {
                         launchAllState = LaunchAllState.ReadyToFire;
                     } else if (launchAllState == LaunchAllState.Complete) {
@@ -240,6 +242,7 @@ public class GoalSideRed extends OpMode{
         telemetry.addData("Shots Fired", shotsFired);
         telemetry.addData("Spindexer Moving", mechanisms.spindexer.isMoving());
         telemetry.addData("Kicker Timer", kickerTimer.milliseconds());
+        telemetry.addData("Launcher RPM", mechanisms.launcher.getActualRPM());
         telemetry.update();
     }
 

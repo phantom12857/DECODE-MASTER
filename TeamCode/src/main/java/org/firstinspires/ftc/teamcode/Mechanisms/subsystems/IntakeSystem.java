@@ -20,7 +20,7 @@ public class IntakeSystem implements Subsystem {
     public void start() {
         setPower(1.0);
     }
-    public void passiveIntake(){setPower(.4);}
+    public void passiveIntake(){setPower(.45);}
 
     public void reverse() {
         setPower(-1.0);

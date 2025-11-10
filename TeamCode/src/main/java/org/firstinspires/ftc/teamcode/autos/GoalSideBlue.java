@@ -153,7 +153,6 @@ public class GoalSideBlue extends OpMode{
                 if (!follower.isBusy()) {
                     follower.setMaxPower(globalMaxPower);
                     mechanisms.spindexer.autoIntakeEnabled = false;
-                    mechanisms.intake.passiveIntake();
                     follower.followPath(scoreA3, true);
                     shotsFired = 0;
                     pathState = 5;
@@ -162,6 +161,7 @@ public class GoalSideBlue extends OpMode{
 
             case 5:
                 // Wait for launcher to get up to speed and launch 3 pixels
+                mechanisms.intake.passiveIntake();
                 if (!follower.isBusy()) {
                     if (launchAllState == LaunchAllState.Inactive) {
                         shotsFired = 0;
@@ -240,6 +240,7 @@ public class GoalSideBlue extends OpMode{
         telemetry.addData("Shots Fired", shotsFired);
         telemetry.addData("Spindexer Moving", mechanisms.spindexer.isMoving());
         telemetry.addData("Kicker Timer", kickerTimer.milliseconds());
+        telemetry.addData("Launcher RPM", mechanisms.launcher.getActualRPM());
         telemetry.update();
     }
 
