@@ -13,13 +13,28 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+<<<<<<< Updated upstream
 @Autonomous
+=======
+import org.firstinspires.ftc.teamcode.Mechanisms.core.DECODEMechanisms;
+import org.firstinspires.ftc.teamcode.Mechanisms.utils.AprilTagDetector;
+import org.firstinspires.ftc.teamcode.TeleOP.DECODETeleOp1ManArmy;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
+@Autonomous(preselectTeleOp = "DECODETeleOp1ManArmy")
+>>>>>>> Stashed changes
 public class FarSideBlue extends OpMode{
     private DECODEMechanisms mechanisms;
     private AprilTagDetector aprilTagDetector;
     private final ElapsedTime kickerTimer = new ElapsedTime();
+<<<<<<< Updated upstream
     private double globalMaxPower = 0.8;
     private double intakingMaxPower = 0.3;
+=======
+    private final ElapsedTime waitTimer = new ElapsedTime();
+    private double globalMaxPower = 0.95;
+    private double intakingMaxPower = 0.2;
+>>>>>>> Stashed changes
     private int shotsFired = 0;
 
     public enum LaunchAllState {
@@ -39,9 +54,16 @@ public class FarSideBlue extends OpMode{
 
     // ========== Poses ==========
     private final Pose startPose = new Pose(51.75, 8.625, Math.toRadians(90));
+<<<<<<< Updated upstream
     private final Pose a1IntakePose = new Pose(45, 33, Math.toRadians(180));
     private final Pose a1EndPose = new Pose(15, 33, Math.toRadians(180));
     private final Pose scorePose = new Pose(51.75,14, Math.toRadians(102));
+=======
+    private final Pose pLPose = new Pose(51.75, 12, Math.toRadians(106));
+    private final Pose a1IntakePose = new Pose(45, 33, Math.toRadians(180));
+    private final Pose a1EndPose = new Pose(15, 33, Math.toRadians(180));
+    private final Pose scorePose = new Pose(51.75,12, Math.toRadians(110));
+>>>>>>> Stashed changes
     private final Pose bIntakePose = new Pose(20,25, Math.toRadians(218));
     private final Pose bIntakeControlPose = new Pose(40, 25, Math.toRadians(225));
     private final Pose bEndPose = new Pose(14,13, Math.toRadians(218));
@@ -132,19 +154,40 @@ public class FarSideBlue extends OpMode{
 
             case 4:
                 if (!follower.isBusy()) {
+<<<<<<< Updated upstream
                     if (launchAllState == LaunchAllState.Inactive) {
                         launchAllState = LaunchAllState.ReadyToFire;
                     } else if (launchAllState == LaunchAllState.Complete) {
                         launchAllState = LaunchAllState.Inactive;
                         pathState = 5;
                     }
+=======
+                    follower.setMaxPower(globalMaxPower);
+                    mechanisms.spindexer.autoIntakeEnabled = false;
+                    follower.followPath(scoreA1, true);
+                    shotsFired = 0;
+                    pathState = 5;
+>>>>>>> Stashed changes
                 }
                 break;
 
             case 5:
+<<<<<<< Updated upstream
                 if (!follower.isBusy()) {
                     follower.followPath(toIntakeB, false);
                     pathState = 6;
+=======
+                // Wait for launcher to get up to speed and launch 3 pixels
+                mechanisms.intake.passiveIntake();
+                if (!follower.isBusy() && waitTimer.seconds() > 2.75) {
+                    if (launchAllState == LaunchAllState.Inactive) {
+                        shotsFired = 0;
+                        launchAllState = LaunchAllState.ReadyToFire;
+                    } else if (launchAllState == LaunchAllState.Complete) {
+                        launchAllState = LaunchAllState.Inactive;
+                        pathState = 10;
+                    }
+>>>>>>> Stashed changes
                 }
                 break;
 
@@ -201,7 +244,19 @@ public class FarSideBlue extends OpMode{
         telemetry.addData("heading", follower.getPose().getHeading());
         telemetry.addData("Launch All State", launchAllState);
         telemetry.addData("Shots Fired", shotsFired);
+<<<<<<< Updated upstream
         telemetry.update();
+=======
+        telemetry.addData("Spindexer Moving", mechanisms.spindexer.isMoving());
+        telemetry.addData("Kicker Timer", kickerTimer.milliseconds());
+        telemetry.addData("TargetRPM", mechanisms.launcher.getTargetRPM());
+        telemetry.addData("ActualRPM", mechanisms.launcher.getActualRPM());
+        /*telemetry.addData("Hood Position", "%.3f", mechanisms.hood.getPosition());
+        telemetry.addData("Hood Target", "%.3f", mechanisms.hood.getTargetPosition());
+        telemetry.addData("Hood Holding", mechanisms.hood.isHoldingPosition() ? "ACTIVE" : "INACTIVE");
+        telemetry.addData("Hood Voltage", "%.3fV", mechanisms.hood.getEncoderVoltage());
+        */telemetry.update();
+>>>>>>> Stashed changes
     }
 
     @Override

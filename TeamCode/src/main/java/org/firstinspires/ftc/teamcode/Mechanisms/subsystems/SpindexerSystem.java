@@ -9,19 +9,25 @@ import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.Mechanisms.core.Subsystem;
 import org.firstinspires.ftc.teamcode.Mechanisms.utils.LimitSwitchManager;
 import org.firstinspires.ftc.teamcode.Mechanisms.utils.SensorManager;
 
 public class SpindexerSystem implements Subsystem {
 
-    private final DcMotor spindexer;
+    private final DcMotorEx spindexer;
     private final LimitSwitchManager limitSwitchManager;
     private final SensorManager sensorManager;
 
     private int currentStep = 0;
     public int ballsLoaded = 0;
+<<<<<<< Updated upstream
     private boolean autoIntakeEnabled = true;
+=======
+    public boolean autoIntakeEnabled = true;
+    public boolean emergencyReverse = false;
+>>>>>>> Stashed changes
 
     private enum State { IDLE, HOMING, MOVING_TO_STEP }
     private State state = State.IDLE;
@@ -37,10 +43,10 @@ public class SpindexerSystem implements Subsystem {
         try {
             spindexer = hardwareMap.get(DcMotorEx.class, "spindexer");
 
-            spindexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            spindexer.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            spindexer.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+            spindexer.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
             spindexer.setDirection(DcMotorSimple.Direction.REVERSE);
-            spindexer.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            spindexer.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
             // Initialize managers
             limitSwitchManager = new LimitSwitchManager(
@@ -97,6 +103,22 @@ public class SpindexerSystem implements Subsystem {
             checkForBall();
             ballCheckTimer.reset();
         }
+
+        if(emergencyReverse){
+            spindexer.setPower(.3);
+            spindexer.setTargetPosition(spindexer.getCurrentPosition() - 20);
+            spindexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            if(!isMoving()){
+                spindexer.setPower(0);
+                emergencyReverse = false;
+            }
+        }
+
+        //double spindexerCurrent = spindexer.getCurrent(CurrentUnit.AMPS);
+        /*final double spindexerCurrentThreshold = 5.0;
+        if(spindexerCurrent > spindexerCurrentThreshold){
+            spindexer.setPower(0);
+        }*/
     }
 
     private void checkForBall() {
@@ -153,6 +175,7 @@ public class SpindexerSystem implements Subsystem {
         telemetry.addData("Spindexer State", state);
         telemetry.addData("Limit Switch", limitSwitchManager.isPressed() ? "PRESSED" : "Released");
         telemetry.addData("Auto-Intake", autoIntakeEnabled ? "ENABLED" : "DISABLED");
+        //telemetry.addData("Spindexer Current ", spindexer.getCurrent(CurrentUnit.AMPS));
 
         if (sensorManager.isConnected()) {
             telemetry.addData("Ball Detected", sensorManager.isBallDetected() ? "YES" : "NO");

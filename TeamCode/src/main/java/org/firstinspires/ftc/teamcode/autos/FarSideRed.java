@@ -13,13 +13,27 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+<<<<<<< Updated upstream
 @Autonomous
+=======
+import org.firstinspires.ftc.teamcode.Mechanisms.core.DECODEMechanisms;
+import org.firstinspires.ftc.teamcode.Mechanisms.utils.AprilTagDetector;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
+@Autonomous(preselectTeleOp = "DECODETeleOp1ManArmy")
+>>>>>>> Stashed changes
 public class FarSideRed extends OpMode{
     private DECODEMechanisms mechanisms;
     private AprilTagDetector aprilTagDetector;
     private final ElapsedTime kickerTimer = new ElapsedTime();
+<<<<<<< Updated upstream
     private double globalMaxPower = 0.8;
     private double intakingMaxPower = 0.3;
+=======
+    private final ElapsedTime waitTimer = new ElapsedTime();
+    private double globalMaxPower = 0.95;
+    private double intakingMaxPower = 0.25;
+>>>>>>> Stashed changes
     private int shotsFired = 0;
 
     public enum LaunchAllState {
@@ -38,6 +52,7 @@ public class FarSideRed extends OpMode{
     private int pathState;
 
     // ========== Poses ==========
+<<<<<<< Updated upstream
     private final Pose startPose = new Pose(96, 9, Math.toRadians(90));
     private final Pose a1IntakePose = new Pose(95, 36, Math.toRadians(0));
     private final Pose a1EndPose = new Pose(120, 36, Math.toRadians(0));
@@ -45,6 +60,16 @@ public class FarSideRed extends OpMode{
     private final Pose bIntakePose = new Pose(120,10, Math.toRadians(0));
     private final Pose bIntakeControlPose = new Pose(100, 20, Math.toRadians(0));
     private final Pose bEndPose = new Pose(130,9, Math.toRadians(0));
+=======
+    private final Pose startPose = new Pose(88.25, 8.625, Math.toRadians(90));
+    private final Pose pLPose = new Pose(88.25, 13, Math.toRadians(76));
+    private final Pose a1IntakePose = new Pose(95, 40, Math.toRadians(0));
+    private final Pose a1EndPose = new Pose(125, 40, Math.toRadians(0));
+    private final Pose scorePose = new Pose(88.25,14, Math.toRadians(75));
+    private final Pose bIntakePose = new Pose(120,25, Math.toRadians(38));
+    private final Pose bIntakeControlPose = new Pose(100, 25, Math.toRadians(38));
+    private final Pose bEndPose = new Pose(126,10, Math.toRadians(38));
+>>>>>>> Stashed changes
     private final Pose parkPose = new Pose(96, 30, Math.toRadians(90));
 
     // ==========  Paths  ==========
