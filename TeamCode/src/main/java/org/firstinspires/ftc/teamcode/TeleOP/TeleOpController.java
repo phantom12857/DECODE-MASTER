@@ -2,40 +2,50 @@ package org.firstinspires.ftc.teamcode.TeleOP;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.Mechanisms.utils.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.Mechanisms.core.DECODEMechanisms;
+import org.firstinspires.ftc.teamcode.Mechanisms.subsystems.IntakeSystem;
+import org.firstinspires.ftc.teamcode.Mechanisms.utils.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.Mechanisms.utils.ButtonDebouncer;
 
+/**
+ * The TeleOpController class centralizes all driver control logic.
+ * It maps gamepad inputs to specific robot actions and provides a clear separation
+ * between the control scheme and the underlying mechanism implementation.
+ */
 public class TeleOpController {
+
+    // ==================================================
+    // D E P E N D E N C I E S
+    // ==================================================
     private final DECODEMechanisms mechanisms;
     private final AprilTagDetector aprilTagDetector;
-    private final Gamepad gamepad1, gamepad2;
+    private final Gamepad gamepad1;
+    private final Gamepad gamepad2;
     private final Telemetry telemetry;
+
+    // ==================================================
+    // S T A T E
+    // ==================================================
     private double driveSpeedModifier = 1.0;
-    private double desiredRPM = 0.0;
-    private final double REGRESSION_SLOPE = 13.98485;
-    private final double REGRESSION_Y_INT = 2834.57576;
+    private boolean isBlueAlliance = true; // Default, can be changed.
 
-    // Alliance configuration - set this based on your alliance
-    private boolean isBlueAlliance = true;
+    // ==================================================
+    // B U T T O N   D E B O U N C E R S
+    // ==================================================
+    private final ButtonDebouncer g1_y = new ButtonDebouncer();
+    private final ButtonDebouncer g1_b = new ButtonDebouncer();
+    private final ButtonDebouncer g2_a = new ButtonDebouncer();
+    private final ButtonDebouncer g2_b = new ButtonDebouncer();
+    private final ButtonDebouncer g2_x = new ButtonDebouncer();
+    private final ButtonDebouncer g2_y = new ButtonDebouncer();
+    private final ButtonDebouncer g2_dpad_up = new ButtonDebouncer();
+    private final ButtonDebouncer g2_dpad_down = new ButtonDebouncer();
+    private final ButtonDebouncer g2_dpad_left = new ButtonDebouncer();
+    private final ButtonDebouncer g2_dpad_right = new ButtonDebouncer();
 
-    // Button debouncers for each button
-    private final ButtonDebouncer g1RightBumper = new ButtonDebouncer();
-    private final ButtonDebouncer g1LeftBumper = new ButtonDebouncer();
-    private final ButtonDebouncer g1Y = new ButtonDebouncer();
-    private final ButtonDebouncer g2A = new ButtonDebouncer();
-    private final ButtonDebouncer g2X = new ButtonDebouncer();
-    private final ButtonDebouncer g2Y = new ButtonDebouncer();
-    private final ButtonDebouncer g2B = new ButtonDebouncer();
-    private final ButtonDebouncer g2LeftBumper = new ButtonDebouncer();
-    private final ButtonDebouncer g2DpadLeft = new ButtonDebouncer();
-    private final ButtonDebouncer g2DpadUp = new ButtonDebouncer();
-    private final ButtonDebouncer g2DpadRight = new ButtonDebouncer();
-    private final ButtonDebouncer g2DpadDown = new ButtonDebouncer();
-    private final ButtonDebouncer g1DpadDown = new ButtonDebouncer();
-    private final ButtonDebouncer g1LeftStick = new ButtonDebouncer();
-    private final ButtonDebouncer g1RightStick = new ButtonDebouncer();
-
+    /**
+     * Constructor for TeleOpController.
+     */
     public TeleOpController(DECODEMechanisms mechanisms, AprilTagDetector aprilTagDetector,
                             Gamepad gamepad1, Gamepad gamepad2, Telemetry telemetry) {
         this.mechanisms = mechanisms;
@@ -46,70 +56,48 @@ public class TeleOpController {
     }
 
     /**
-     * Set the alliance color for AprilTag detection
-     * @param isBlue true for blue alliance, false for red
+     * Main update loop for the controller.
      */
-    public void setAlliance(boolean isBlue) {
-        this.isBlueAlliance = isBlue;
-    }
-
     public void update() {
-        aprilTagDetector.update();
-
         updateButtonDebouncers();
-
         handleDriveControls();
         handleIntakeControls();
-        handleSpindexerControls();
-        handleKickerControls();
         handleLauncherControls();
-        handleHoodControls();
-        handleTurretControls();
-        //handleContinuousServoControls();
-        handleUtilityControls();
+        handleSpindexerControls();
+        handleHoodAndTurretControls();
     }
 
+    /**
+     * Updates the state of all debouncers.
+     */
     private void updateButtonDebouncers() {
-        g1RightBumper.update(gamepad1.right_bumper);
-        g1LeftBumper.update(gamepad1.left_bumper);
-        g1Y.update(gamepad1.y);
-        g2A.update(gamepad2.a);
-        g2X.update(gamepad2.x);
-        g2Y.update(gamepad2.y);
-        g2B.update(gamepad2.b);
-        g2LeftBumper.update(gamepad2.left_bumper);
-        g2DpadLeft.update(gamepad2.dpad_left);
-        g2DpadUp.update(gamepad2.dpad_up);
-        g2DpadRight.update(gamepad2.dpad_right);
-        g2DpadDown.update(gamepad2.dpad_down);
-        g1DpadDown.update(gamepad1.dpad_down);
-        g1LeftStick.update(gamepad1.left_stick_button);
-        g1RightStick.update(gamepad1.right_stick_button);
+        g1_y.update(gamepad1.y);
+        g1_b.update(gamepad1.b);
+        g2_a.update(gamepad2.a);
+        g2_b.update(gamepad2.b);
+        g2_x.update(gamepad2.x);
+        g2_y.update(gamepad2.y);
+        g2_dpad_up.update(gamepad2.dpad_up);
+        g2_dpad_down.update(gamepad2.dpad_down);
+        g2_dpad_left.update(gamepad2.dpad_left);
+        g2_dpad_right.update(gamepad2.dpad_right);
     }
+
+    // ==================================================
+    // C O N T R O L   H A N D L E R S
+    // ==================================================
 
     private void handleDriveControls() {
-        // Speed modifier controls with debouncing
-        if (g1RightBumper.wasPressedThisCycle()) {
-            driveSpeedModifier = Math.min(1.0, driveSpeedModifier + 0.1);
-        }
-
-        if (g1LeftBumper.wasPressedThisCycle()) {
-            driveSpeedModifier = Math.max(0.1, driveSpeedModifier - 0.1);
-        }
+        // Right trigger acts as a variable speed modifier (the more you press, the slower you go).
+        driveSpeedModifier = 1.0 - (gamepad1.right_trigger * 0.7);
 
         double y = -gamepad1.left_stick_y * driveSpeedModifier;
         double x = gamepad1.left_stick_x * driveSpeedModifier;
         double rx = gamepad1.right_stick_x * driveSpeedModifier;
 
-        // Toggle field-centric with debouncing
-        if (g1Y.wasPressedThisCycle()) {
-            mechanisms.drive.toggleFieldCentric();
-        }
-
-        // Reset heading offset
-        if (gamepad1.b) {
-            mechanisms.drive.resetHeadingOffset();
-        }
+        // Field-centric and heading reset controls.
+        if (g1_y.wasPressedThisCycle()) mechanisms.drive.toggleFieldCentric();
+        if (g1_b.wasPressedThisCycle()) mechanisms.drive.resetHeadingOffset();
 
         mechanisms.drive.driveMecanum(y, x, rx);
     }
@@ -124,181 +112,43 @@ public class TeleOpController {
         }
     }
 
-    private void handleSpindexerControls() {
-        // Manual advance with debouncing
-        if (g2A.wasPressedThisCycle() && !mechanisms.spindexer.isMoving()) {
-            mechanisms.spindexer.increment();
-        }
-
-        // Manual step control with debouncing
-        if (g2X.wasPressedThisCycle() && !mechanisms.spindexer.isMoving()) {
-            int currentStep = mechanisms.spindexer.getCurrentStep();
-            int nextStep = (currentStep + 1) % 3;
-            mechanisms.spindexer.moveToStep(nextStep);
-        }
-
-        // Home spindexer with debouncing
-        if (g2Y.wasPressedThisCycle()) {
-            mechanisms.spindexer.home();
-        }
-    }
-
-    private void handleKickerControls() {
-        if (g2B.wasPressedThisCycle()) {
-            mechanisms.launcher.kick();
-        }
-    }
-
     private void handleLauncherControls() {
-        // Preset RPM controls with debouncing
-        if (g2DpadLeft.wasPressedThisCycle()) {
-            mechanisms.launcher.setRPM(3250);
-        }
+        // D-Pad for RPM presets.
+        if (g2_dpad_up.wasPressedThisCycle()) mechanisms.launcher.setRPM(4500);
+        if (g2_dpad_left.wasPressedThisCycle()) mechanisms.launcher.setRPM(3750);
+        if (g2_dpad_right.wasPressedThisCycle()) mechanisms.launcher.setRPM(3250);
+        if (g2_dpad_down.wasPressedThisCycle()) mechanisms.launcher.stop();
 
-        if (g2DpadUp.wasPressedThisCycle()) {
-            mechanisms.launcher.setRPM(3750);
-        }
-
-        if (g2DpadRight.wasPressedThisCycle()) {
-            mechanisms.launcher.setRPM(4500);
-        }
-
-        // Auto RPM based on AprilTag distance - FIXED LINE
-        double distanceToApriltag = aprilTagDetector.getBackboardDistance(isBlueAlliance);
-        if (distanceToApriltag > 0) {
-            desiredRPM = distanceToApriltag * REGRESSION_SLOPE + REGRESSION_Y_INT;
-        }
-
-        if (g2LeftBumper.wasPressedThisCycle()) {
-            mechanisms.launcher.setRPM(desiredRPM);
-        }
-
-        // Stop launcher with debouncing
-        if (g2DpadDown.wasPressedThisCycle()) {
-            mechanisms.launcher.stop();
-        }
+        // B button to fire.
+        if (g2_b.wasPressedThisCycle()) mechanisms.launcher.kick();
     }
 
-    private void handleHoodControls() {
-        // Manual hood control
-        double stick = -gamepad2.right_stick_y;
-        if (Math.abs(stick) > 0.1) {
-            mechanisms.hood.setPower(stick * 0.8);
-        } else {
-            mechanisms.hood.stop();
-        }
-
-        // Preset hood movements with debouncing
-        if (g2DpadUp.wasPressedThisCycle()) {
-            mechanisms.hood.setPower(0.6);
-        }
-        if (g2DpadDown.wasPressedThisCycle()) {
-            mechanisms.hood.setPower(-0.6);
-        }
-
-        // Stop when buttons released
-        if (g2DpadUp.wasReleased()) {
-            mechanisms.hood.stop();
-        }
-        if (g2DpadDown.wasReleased()) {
-            mechanisms.hood.stop();
-        }
+    private void handleSpindexerControls() {
+        // A to advance, X to home, Y to reset ball count.
+        if (g2_a.wasPressedThisCycle()) mechanisms.spindexer.increment();
+        if (g2_x.wasPressedThisCycle()) mechanisms.spindexer.home();
+        if (g2_y.wasPressedThisCycle()) mechanisms.spindexer.setBallsLoaded(0);
     }
 
-    private void handleTurretControls() {
-        // Manual turret control
-        double stick = gamepad2.left_stick_x;
-        if (Math.abs(stick) > 0.1) {
-            mechanisms.turret.setPower(stick * 0.8);
-        } else {
-            mechanisms.turret.stop();
-        }
-
-        // Preset turret movements with debouncing
-        if (g2DpadLeft.wasPressedThisCycle()) {
-            mechanisms.turret.setPower(-0.6);
-        }
-        if (g2DpadRight.wasPressedThisCycle()) {
-            mechanisms.turret.setPower(0.6);
-        }
-
-        // Stop when buttons released
-        if (g2DpadLeft.wasReleased()) {
-            mechanisms.turret.stop();
-        }
-        if (g2DpadRight.wasReleased()) {
-            mechanisms.turret.stop();
-        }
+    private void handleHoodAndTurretControls() {
+        // Right stick for hood, Left stick for turret.
+        mechanisms.hood.setPower(-gamepad2.right_stick_y);
+        mechanisms.turret.setPower(gamepad2.left_stick_x);
     }
 
-    /*private void handleContinuousServoControls() {
-        // Continuous servo 1 with triggers
-        if (gamepad1.right_trigger > 0.1) {
-            mechanisms.continuousServos.setPosition(1, 0.5);
-        } else if (gamepad1.left_trigger > 0.1) {
-            mechanisms.continuousServos.setPosition(1, -0.5);
-        } else {
-            mechanisms.continuousServos.setPosition(1, 0);
-        }
-
-        // Continuous servo 2 with triggers
-        if (gamepad2.right_trigger > 0.1) {
-            mechanisms.continuousServos.setPosition(2, 0.5);
-        } else if (gamepad2.left_trigger > 0.1) {
-            mechanisms.continuousServos.setPosition(2, -0.5);
-        } else {
-            mechanisms.continuousServos.setPosition(2, 0);
-        }
-
-        // Precise positioning with debouncing
-        if (g1LeftStick.wasPressedThisCycle()) {
-            double currentPos = mechanisms.continuousServos.getPositionRevolutions(1);
-            mechanisms.continuousServos.setPosition(1, currentPos + 0.25);
-        }
-
-        if (g1RightStick.wasPressedThisCycle()) {
-            double currentPos = mechanisms.continuousServos.getPositionRevolutions(1);
-            mechanisms.continuousServos.setPosition(1, currentPos - 0.25);
-        }
-    }*/
-
-    private void handleUtilityControls() {
-        // Manual home spindexer with debouncing
-        if (g1DpadDown.wasPressedThisCycle()) {
-            mechanisms.spindexer.home();
-        }
-    }
-
+    /**
+     * Adds control-specific data to the telemetry.
+     */
     public void addTelemetryData(Telemetry telemetry) {
-        telemetry.addData("Drive Speed", "%.1fx", driveSpeedModifier);
+        telemetry.addLine("--- Driver Controls ---");
+        telemetry.addData("Drive Speed Modifier", "%.2f", driveSpeedModifier);
+        telemetry.addData("Alliance", isBlueAlliance ? "Blue" : "Red");
+    }
 
-        // AprilTag telemetry
-        double distance = aprilTagDetector.getBackboardDistance(isBlueAlliance);
-        if (distance > 0) {
-            telemetry.addData("AprilTag Distance", "%.1f inches", distance);
-            telemetry.addData("Auto RPM Target", "%.0f", desiredRPM);
-        } else {
-            telemetry.addData("AprilTag", "No backboard tag detected");
-        }
-
-        telemetry.addLine("");
-        telemetry.addLine("=== Controls ===");
-        telemetry.addData("Drive", "LS: Move, RS: Rotate, Y: Toggle Field-Centric");
-        telemetry.addData("Intake", "RT: Forward, LT: Reverse");
-        telemetry.addData("Spindexer", "A: Manual Advance, X: Manual Step, Y: Home");
-        telemetry.addData("Launcher", "Dpad: Presets, LB: Auto RPM, Dpad Down: Stop");
-        telemetry.addData("Hood", "RS: Manual, Dpad Up/Down: Move");
-        telemetry.addData("Turret", "LS: Manual, Dpad Left/Right: Move");
-
-        // Debug button states
-        telemetry.addLine("");
-        telemetry.addLine("=== Button Debug ===");
-        telemetry.addData("G2 A Pressed", g2A.wasPressedThisCycle());
-        telemetry.addData("G2 B Pressed", g2B.wasPressedThisCycle());
-        telemetry.addData("G2 X Pressed", g2X.wasPressedThisCycle());
-        telemetry.addData("G2 Y Pressed", g2Y.wasPressedThisCycle());
-
-        // Add AprilTag detection info
-        aprilTagDetector.addTelemetry(telemetry);
+    /**
+     * Sets the alliance for AprilTag detection.
+     */
+    public void setAlliance(boolean isBlue) {
+        this.isBlueAlliance = isBlue;
     }
 }

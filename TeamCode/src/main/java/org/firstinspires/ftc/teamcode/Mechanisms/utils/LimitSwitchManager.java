@@ -1,57 +1,102 @@
 package org.firstinspires.ftc.teamcode.Mechanisms.utils;
 
 import com.qualcomm.robotcore.hardware.DigitalChannel;
-import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Manages limit switch functionality with debouncing and state tracking
+ * The LimitSwitchManager class provides a debounced, thread-safe interface to a digital limit switch.
  */
 public class LimitSwitchManager {
+
+    // ==================================================
+    // C O N S T A N T S
+    // ==================================================
+    private static final long THREAD_SLEEP_MS = 20;
+    private static final long DEBOUNCE_DELAY_MS = 50;
+    private static final long SHUTDOWN_TIMEOUT_MS = 100;
+
+    // ==================================================
+    // H A R D W A R E
+    // ==================================================
     private final DigitalChannel limitSwitch;
-    private boolean lastState = false;
-    private boolean currentState = false;
-    private final ElapsedTime debounceTimer = new ElapsedTime();
-    private static final double DEBOUNCE_TIME_MS = 50;
 
-    public LimitSwitchManager(DigitalChannel limitSwitch) {
-        this.limitSwitch = limitSwitch;
-        if (limitSwitch != null) {
+    // ==================================================
+    // S T A T E
+    // ==================================================
+    private final ExecutorService executorService;
+    private volatile boolean isPressed = false;
+
+    /**
+     * Constructor for LimitSwitchManager.
+     *
+     * @param hardwareMap The robot's hardware map.
+     * @param deviceName  The name of the limit switch in the hardware configuration.
+     */
+    public LimitSwitchManager(HardwareMap hardwareMap, String deviceName) {
+        try {
+            limitSwitch = hardwareMap.get(DigitalChannel.class, deviceName);
             limitSwitch.setMode(DigitalChannel.Mode.INPUT);
+            executorService = Executors.newSingleThreadExecutor();
+            executorService.submit(this::readSwitchContinuously);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initialize LimitSwitchManager: " + deviceName, e);
         }
-        debounceTimer.reset();
     }
 
-    public void update() {
-        if (limitSwitch == null) return;
+    /**
+     * Continuously reads the limit switch state on a background thread, with debouncing.
+     */
+    private void readSwitchContinuously() {
+        long lastDebounceTime = 0;
+        boolean lastReading = false;
 
-        boolean rawState = !limitSwitch.getState(); // Inverted because typically pressed = low
+        while (!Thread.currentThread().isInterrupted()) {
+            boolean currentReading = !limitSwitch.getState(); // Inverted: getState() is true when open.
 
-        // Debouncing logic
-        if (debounceTimer.milliseconds() > DEBOUNCE_TIME_MS) {
-            currentState = rawState;
-            debounceTimer.reset();
+            if (currentReading != lastReading) {
+                lastDebounceTime = System.currentTimeMillis();
+            }
+
+            if ((System.currentTimeMillis() - lastDebounceTime) > DEBOUNCE_DELAY_MS) {
+                isPressed = currentReading;
+            }
+
+            lastReading = currentReading;
+
+            try {
+                Thread.sleep(THREAD_SLEEP_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
         }
-
-        lastState = currentState;
     }
+
+    /**
+     * Stops the background thread.
+     */
+    public void stop() {
+        if (executorService != null) {
+            executorService.shutdownNow();
+            try {
+                if (!executorService.awaitTermination(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                    System.err.println("Limit switch thread did not terminate gracefully.");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    // ==================================================
+    // G E T T E R S
+    // ==================================================
 
     public boolean isPressed() {
-        return currentState;
-    }
-
-    public boolean wasPressed() {
-        return lastState;
-    }
-
-    public boolean wasReleased() {
-        return !currentState && lastState;
-    }
-
-    public boolean wasPressedThisCycle() {
-        return currentState && !lastState;
-    }
-
-    public boolean isConnected() {
-        return limitSwitch != null;
+        return isPressed;
     }
 }

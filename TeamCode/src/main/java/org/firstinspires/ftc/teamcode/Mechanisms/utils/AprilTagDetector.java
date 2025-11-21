@@ -1,124 +1,110 @@
 package org.firstinspires.ftc.teamcode.Mechanisms.utils;
 
 import android.annotation.SuppressLint;
-
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Position;
-import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
+/**
+ * The AprilTagDetector class manages all interactions with the FTC VisionPortal
+ * for the purpose of detecting AprilTags.
+ */
 public class AprilTagDetector {
 
-    private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
+    // ==================================================
+    // C O N S T A N T S
+    // ==================================================
+    private static final String WEBCAM_NAME = "Webcam 1";
 
-    // Camera configuration
-    private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 0, 0, 0);
-    private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 0, -90, 0, 0);
+    // ==================================================
+    // H A R D W A R E
+    // ==================================================
+    private final AprilTagProcessor aprilTagProcessor;
+    private final VisionPortal visionPortal;
 
-    // Vision components
-    private AprilTagProcessor aprilTag;
-    private VisionPortal visionPortal;
-
-    // Detection state
+    // ==================================================
+    // S T A T E
+    // ==================================================
     private List<AprilTagDetection> currentDetections;
-    private boolean initialized = false;
-
-    public AprilTagDetector(HardwareMap hardwareMap) {
-        initAprilTag(hardwareMap);
-    }
 
     /**
-     * Initialize the AprilTag processor and Vision Portal
+     * Constructor for AprilTagDetector.
+     *
+     * @param hardwareMap The robot's hardware map.
      */
-    private void initAprilTag(HardwareMap hardwareMap) {
-        try {
-            // Create the AprilTag processor
-            aprilTag = new AprilTagProcessor.Builder()
-                    .setDrawTagOutline(true)
-                    .setCameraPose(cameraPosition, cameraOrientation)
-                    .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
-                    .build();
+    public AprilTagDetector(HardwareMap hardwareMap) {
+        aprilTagProcessor = new AprilTagProcessor.Builder()
+                .setDrawTagOutline(true)
+                .build();
 
-            // Adjust detection parameters for better performance
-            aprilTag.setDecimation(2); // Balance between range and frame rate
-
-            // Create the vision portal
-            VisionPortal.Builder builder = new VisionPortal.Builder();
-
-            if (USE_WEBCAM) {
-                builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
-            } else {
-                builder.setCamera(BuiltinCameraDirection.BACK);
-            }
-
-            // Set camera resolution for better detection
-            // builder.setCameraResolution(new Size(640, 480));
-
-            builder.addProcessor(aprilTag);
-            builder.enableLiveView(false); // Disable live view for better performance
-
-            visionPortal = builder.build();
-
-            // Wait for camera to initialize
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-            initialized = true;
-
-        } catch (Exception e) {
-            System.err.println("AprilTagDetector initialization failed: " + e.getMessage());
-            initialized = false;
-        }
+        visionPortal = new VisionPortal.Builder()
+                .setCamera(hardwareMap.get(WebcamName.class, WEBCAM_NAME))
+                .addProcessor(aprilTagProcessor)
+                .build();
     }
 
     /**
-     * Update detections - call this in your loop
+     * Updates the list of current AprilTag detections.
+     * This should be called in the main robot loop.
      */
     public void update() {
-        if (initialized && visionPortal.getCameraState() == VisionPortal.CameraState.STREAMING) {
-            currentDetections = aprilTag.getDetections();
+        currentDetections = aprilTagProcessor.getDetections();
+    }
+
+    /**
+     * Closes the vision portal and releases all resources.
+     */
+    public void close() {
+        if (visionPortal != null) {
+            visionPortal.close();
         }
     }
 
     /**
-     * Get distance to a specific AprilTag
-     * @param tagId The ID of the AprilTag to detect
-     * @return Distance in inches, or -1 if not found
+     * Adds detailed AprilTag detection data to the telemetry.
+     *
+     * @param telemetry The Telemetry object.
      */
-    public double getDistanceToTag(int tagId) {
-        if (!initialized || currentDetections == null) {
-            return -1;
-        }
+    @SuppressLint("DefaultLocale")
+    public void addTelemetry(Telemetry telemetry) {
+        telemetry.addData("AprilTags Detected", getDetectionCount());
 
-        for (AprilTagDetection detection : currentDetections) {
-            if (detection.metadata != null && detection.id == tagId) {
-                return detection.ftcPose.range;
+        if (currentDetections != null) {
+            for (AprilTagDetection detection : currentDetections) {
+                if (detection.metadata != null) {
+                    telemetry.addLine(String.format("\n--- ID %d (%s) ---", detection.id, detection.metadata.name));
+                    telemetry.addLine(String.format("Range: %.1f in", detection.ftcPose.range));
+                    telemetry.addLine(String.format("Bearing: %.1f deg", detection.ftcPose.bearing));
+                    telemetry.addLine(String.format("Yaw: %.1f deg", detection.ftcPose.yaw));
+                }
             }
         }
-        return -1;
+    }
+
+    // ==================================================
+    // G E T T E R S
+    // ==================================================
+
+    /**
+     * Gets the number of currently detected tags.
+     */
+    public int getDetectionCount() {
+        return (currentDetections != null) ? currentDetections.size() : 0;
     }
 
     /**
-     * Get distance to the closest backboard AprilTag (IDs 1, 2, 3 for blue, 4, 5, 6 for red)
-     * @param isBlueAlliance Whether we're on blue alliance (uses tags 1,2,3) or red (uses tags 4,5,6)
-     * @return Distance in inches, or -1 if no valid tag found
+     * Gets the distance to the closest backboard AprilTag.
+     *
+     * @param isBlueAlliance True if on the blue alliance, false for red.
+     * @return The distance in inches, or -1 if no valid tag is found.
      */
     public double getBackboardDistance(boolean isBlueAlliance) {
-        if (!initialized || currentDetections == null) {
-            return -1;
-        }
+        if (currentDetections == null) return -1;
 
         int[] targetTags = isBlueAlliance ? new int[]{1, 2, 3} : new int[]{4, 5, 6};
         double closestDistance = -1;
@@ -127,116 +113,13 @@ public class AprilTagDetector {
             if (detection.metadata != null) {
                 for (int tagId : targetTags) {
                     if (detection.id == tagId) {
-                        double distance = detection.ftcPose.range;
-                        if (closestDistance == -1 || distance < closestDistance) {
-                            closestDistance = distance;
+                        if (closestDistance == -1 || detection.ftcPose.range < closestDistance) {
+                            closestDistance = detection.ftcPose.range;
                         }
                     }
                 }
             }
         }
         return closestDistance;
-    }
-
-    /**
-     * Get the robot's pose relative to a specific AprilTag
-     * @param tagId The ID of the AprilTag
-     * @return The robot pose, or null if not found
-     */
-    public AprilTagDetection getTagDetection(int tagId) {
-        if (!initialized || currentDetections == null) {
-            return null;
-        }
-
-        for (AprilTagDetection detection : currentDetections) {
-            if (detection.metadata != null && detection.id == tagId) {
-                return detection;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Check if any AprilTags are currently detected
-     */
-    public boolean hasDetections() {
-        return initialized && currentDetections != null && !currentDetections.isEmpty();
-    }
-
-    /**
-     * Get the number of AprilTags currently detected
-     */
-    public int getDetectionCount() {
-        return (initialized && currentDetections != null) ? currentDetections.size() : 0;
-    }
-
-    /**
-     * Get all current detections
-     */
-    public List<AprilTagDetection> getDetections() {
-        return currentDetections;
-    }
-
-    /**
-     * Add telemetry data for debugging
-     */
-    @SuppressLint("DefaultLocale")
-    public void addTelemetry(Telemetry telemetry) {
-        if (!initialized) {
-            telemetry.addLine("AprilTagDetector: NOT INITIALIZED");
-            return;
-        }
-
-        telemetry.addData("# AprilTags Detected", getDetectionCount());
-        telemetry.addData("Camera State", visionPortal.getCameraState().toString());
-
-        if (currentDetections != null) {
-            for (AprilTagDetection detection : currentDetections) {
-                if (detection.metadata != null) {
-                    telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
-                    telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
-                            detection.ftcPose.x,
-                            detection.ftcPose.y,
-                            detection.ftcPose.z));
-                    telemetry.addLine(String.format("Distance: %6.1f inches", detection.ftcPose.range));
-                    telemetry.addLine(String.format("Bearing: %6.1f degrees", detection.ftcPose.bearing));
-                    telemetry.addLine(String.format("Yaw: %6.1f degrees", detection.ftcPose.yaw));
-                } else {
-                    telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
-                }
-            }
-        }
-
-        // Add quick reference for common tags
-        telemetry.addLine("\n=== Backboard Tags ===");
-        telemetry.addLine("Blue: 1,2,3 | Red: 4,5,6");
-        telemetry.addLine("=== Audience Tags ===");
-        telemetry.addLine("Blue: 9,10 | Red: 19,20");
-    }
-
-    /**
-     * Stop the vision portal and release resources
-     */
-    public void close() {
-        if (visionPortal != null) {
-            visionPortal.close();
-        }
-        initialized = false;
-    }
-
-    /**
-     * Check if the detector is properly initialized
-     */
-    public boolean isInitialized() {
-        return initialized;
-    }
-
-    /**
-     * Set camera pose parameters (for advanced calibration)
-     */
-    public void setCameraPose(Position position, YawPitchRollAngles orientation) {
-        this.cameraPosition = position;
-        this.cameraOrientation = orientation;
-        // Note: This won't update the running processor, would need to recreate
     }
 }

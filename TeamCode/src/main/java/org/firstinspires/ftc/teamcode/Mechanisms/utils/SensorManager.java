@@ -2,84 +2,127 @@ package org.firstinspires.ftc.teamcode.Mechanisms.utils;
 
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 /**
- * Manages color and distance sensor data with filtering and ball detection logic
+ * The SensorManager class provides a filtered, thread-safe interface to a color/distance sensor.
+ * It is primarily used for detecting game elements (e.g., balls).
  */
 public class SensorManager {
+
+    // ==================================================
+    // C O N S T A N T S
+    // ==================================================
+    private static final int COLOR_THRESHOLD = 100;
+    private static final long THREAD_SLEEP_MS = 50;
+    private static final long SHUTDOWN_TIMEOUT_MS = 100;
+    private static final double FILTER_ALPHA = 0.3;
+
+    // ==================================================
+    // H A R D W A R E
+    // ==================================================
     private final ColorSensor colorSensor;
     private final DistanceSensor distanceSensor;
-    private final Filter distanceFilter;
-    private final Filter redFilter;
-    private final Filter blueFilter;
-    private final Filter greenFilter;
 
-    private static final double BALL_DETECTION_DISTANCE_MM = 50;
-    private static final int COLOR_THRESHOLD = 100;
-    private static final int DEBOUNCE_COUNT = 3;
+    // ==================================================
+    // S T A T E
+    // ==================================================
+    private final ExecutorService executorService;
+    private volatile double filteredDistance = Double.MAX_VALUE;
+    private volatile int filteredRed = 0;
+    private volatile int filteredGreen = 0;
+    private volatile int filteredBlue = 0;
+    private volatile boolean isBallDetected = false;
+    private final double ballDetectionDistanceMM;
 
-    private int ballDetectionCount = 0;
-    private boolean lastBallDetected = false;
-
-    public SensorManager(ColorSensor colorSensor, DistanceSensor distanceSensor) {
-        this.colorSensor = colorSensor;
-        this.distanceSensor = distanceSensor;
-        this.distanceFilter = new Filter(0.3); // Low-pass filter for distance
-        this.redFilter = new Filter(0.3);
-        this.blueFilter = new Filter(0.3);
-        this.greenFilter = new Filter(0.3);
+    /**
+     * Constructor for SensorManager.
+     *
+     * @param hardwareMap             The robot's hardware map.
+     * @param deviceName              The name of the sensor in the hardware configuration.
+     * @param ballDetectionDistanceMM The distance in millimeters to consider a ball detected.
+     */
+    public SensorManager(HardwareMap hardwareMap, String deviceName, double ballDetectionDistanceMM) {
+        this.ballDetectionDistanceMM = ballDetectionDistanceMM;
+        try {
+            colorSensor = hardwareMap.get(ColorSensor.class, deviceName);
+            distanceSensor = hardwareMap.get(DistanceSensor.class, deviceName);
+            executorService = Executors.newSingleThreadExecutor();
+            executorService.submit(this::readSensorsContinuously);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initialize SensorManager: " + deviceName, e);
+        }
     }
 
-    public void update() {
-        // Sensors are automatically updated when read
+    /**
+     * Continuously reads and filters sensor data on a background thread.
+     */
+    private void readSensorsContinuously() {
+        Filter distanceFilter = new Filter(FILTER_ALPHA);
+        Filter redFilter = new Filter(FILTER_ALPHA);
+        Filter greenFilter = new Filter(FILTER_ALPHA);
+        Filter blueFilter = new Filter(FILTER_ALPHA);
+
+        while (!Thread.currentThread().isInterrupted()) {
+            filteredDistance = distanceFilter.update(distanceSensor.getDistance(DistanceUnit.MM));
+            filteredRed = (int) redFilter.update(colorSensor.red());
+            filteredGreen = (int) greenFilter.update(colorSensor.green());
+            filteredBlue = (int) blueFilter.update(colorSensor.blue());
+
+            isBallDetected = filteredDistance < ballDetectionDistanceMM &&
+                    (filteredRed > COLOR_THRESHOLD || filteredGreen > COLOR_THRESHOLD || filteredBlue > COLOR_THRESHOLD);
+
+            try {
+                Thread.sleep(THREAD_SLEEP_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
     }
+
+    /**
+     * Stops the background thread.
+     */
+    public void stop() {
+        if (executorService != null) {
+            executorService.shutdownNow();
+            try {
+                if (!executorService.awaitTermination(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                    System.err.println("Sensor manager thread did not terminate gracefully.");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    // ==================================================
+    // G E T T E R S
+    // ==================================================
 
     public boolean isBallDetected() {
-        if (distanceSensor == null || colorSensor == null) {
-            return false;
-        }
-
-        double filteredDistance = distanceFilter.update(distanceSensor.getDistance(DistanceUnit.MM));
-        int filteredRed = (int) redFilter.update(colorSensor.red());
-        int filteredBlue = (int) blueFilter.update(colorSensor.blue());
-        int filteredGreen = (int) greenFilter.update(colorSensor.green());
-
-        boolean ballDetected = filteredDistance < BALL_DETECTION_DISTANCE_MM &&
-                (filteredRed > COLOR_THRESHOLD || filteredBlue > COLOR_THRESHOLD || filteredGreen > COLOR_THRESHOLD);
-
-        // Debouncing
-        if (ballDetected != lastBallDetected) {
-            ballDetectionCount++;
-            if (ballDetectionCount >= DEBOUNCE_COUNT) {
-                lastBallDetected = ballDetected;
-                ballDetectionCount = 0;
-            }
-        } else {
-            ballDetectionCount = 0;
-        }
-
-        return lastBallDetected;
+        return isBallDetected;
     }
 
     public double getBallDistance() {
-        return distanceSensor != null ?
-                distanceFilter.update(distanceSensor.getDistance(DistanceUnit.MM)) : 999;
+        return filteredDistance;
     }
 
     public int getRed() {
-        return colorSensor != null ? (int) redFilter.update(colorSensor.red()) : 0;
-    }
-
-    public int getBlue() {
-        return colorSensor != null ? (int) blueFilter.update(colorSensor.blue()) : 0;
+        return filteredRed;
     }
 
     public int getGreen() {
-        return colorSensor != null ? (int) greenFilter.update(colorSensor.green()) : 0;
+        return filteredGreen;
     }
 
-    public boolean isConnected() {
-        return colorSensor != null && distanceSensor != null;
+    public int getBlue() {
+        return filteredBlue;
     }
 }
