@@ -1,0 +1,38 @@
+// /home/akohn/Documents/FtcRobotController-master/FtcRobotController/build.gradle
+
+import java.text.SimpleDateFormat
+
+//
+// build.gradle in FtcRobotController
+//
+apply plugin: 'com.android.library'
+
+// THIS IS THE CRITICAL FIX: Include the common build script which contains repositories.
+apply from: '../build.common.gradle'
+apply from: '../build.dependencies.gradle'
+
+android {
+    namespace = 'com.qualcomm.ftcrobotcontroller'
+
+    defaultConfig {
+        minSdkVersion 24
+        //noinspection ExpiredTargetSdkVersion
+        targetSdkVersion 28
+        buildConfigField "String", "APP_BUILD_TIME", '"' + (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.ROOT).format(new Date())) + '"'
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    // This is often inherited from build.common.gradle, but defining it here is fine.
+    compileSdkVersion 34
+    lint {
+        disable 'UnusedResources'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}

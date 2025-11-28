@@ -1,0 +1,17 @@
+// /home/akohn/Documents/FtcRobotController-master/settings.gradle
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        // JitPack is needed for libraries like EasyOpenCV
+        maven { url 'https://jitpack.io' }
+        // The NEW and CORRECT repository for Pedro Pathing
+        maven { url = "https://mymaven.bylazar.com/releases" }
+    }
+}
+
+rootProject.name = "FtcRobotController-master"
+include ':TeamCode'
+include ':FtcRobotController'

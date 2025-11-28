@@ -1,0 +1,39 @@
+// /home/akohn/Documents/FtcRobotController-master/TeamCode/build.gradle
+
+//
+// build.gradle in TeamCode
+//
+// Most of the definitions for building your module reside in a common, shared
+// file 'build.common.gradle'. Being factored in this way makes it easier to
+// integrate updates to the FTC into your code. If you really need to customize
+// the build definitions, you can place those customizations in this file, but
+// please think carefully as to whether such customizations are really necessary
+// before doing so.
+
+apply plugin: 'com.android.library'
+
+// Custom definitions may go here
+
+// Include common definitions from above.
+apply from: '../build.common.gradle'
+apply from: '../build.dependencies.gradle'
+
+android {
+    namespace = 'org.firstinspires.ftc.teamcode'
+
+    packagingOptions {
+        jniLibs {
+            pickFirsts += ['**/*.so']
+        }
+        jniLibs.useLegacyPackaging true
+    }
+    lint {
+        disable 'UnusedResources'
+    }
+}
+
+dependencies {
+    // This is the only dependency that should remain, as it links to the other module.
+    // All other library dependencies have been moved to build.dependencies.gradle.
+    implementation project(':FtcRobotController')
+}

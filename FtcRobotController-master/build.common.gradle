@@ -1,0 +1,27 @@
+// /home/akohn/Documents/FtcRobotController-master/build.common.gradle
+
+//
+// build.common.gradle
+//
+// All the build definitions that are common to all the modules
+// (FtcRobotController and TeamCode) should be defined here.
+//
+
+// Repositories are now defined in settings.gradle to avoid conflicts
+// This section is intentionally left empty
+
+android {
+    // This is the recommended default.
+    compileSdkVersion 34
+
+    defaultConfig {
+        minSdkVersion 24
+        targetSdkVersion 34
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+}

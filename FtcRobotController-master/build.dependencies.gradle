@@ -1,0 +1,24 @@
+// /home/akohn/Documents/FtcRobotController-master/build.dependencies.gradle
+
+// Repositories are now defined in settings.gradle
+
+dependencies {
+    implementation 'org.firstinspires.ftc:Inspection:11.0.0'
+    implementation 'org.firstinspires.ftc:Blocks:11.0.0'
+    //noinspection Aligned16KB
+    implementation 'org.firstinspires.ftc:RobotCore:11.0.0'
+    implementation 'org.firstinspires.ftc:RobotServer:11.0.0'
+    implementation 'org.firstinspires.ftc:OnBotJava:11.0.0'
+    implementation 'org.firstinspires.ftc:Hardware:11.0.0'
+    implementation 'org.firstinspires.ftc:FtcCommon:11.0.0'
+    implementation 'org.firstinspires.ftc:Vision:11.0.0'
+
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+
+    // This is the NEW and CORRECT dependency for Pedro Pathing
+    // The name is now 'ftc' and you should use a valid version.
+    implementation 'com.pedropathing:ftc:2.1.6'
+
+    //noinspection Aligned16KB
+    implementation 'org.openftc:easyopencv:1.7.3'
+}
