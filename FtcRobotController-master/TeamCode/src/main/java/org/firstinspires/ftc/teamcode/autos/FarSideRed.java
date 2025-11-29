@@ -11,6 +11,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.PathCreator;
 /**
  * Autonomous OpMode for the red alliance, starting on the far side.
  */
+@SuppressWarnings("RedundantThrows")
 @Autonomous(name = "Auto | Red Far Side", group = "red")
 public class FarSideRed extends LinearOpMode {
 
@@ -35,7 +36,7 @@ public class FarSideRed extends LinearOpMode {
             // This auto is a placeholder and needs a path defined.
             // For now, it will just park.
             follower.followPath(PathCreator.createPathToPark(follower, PathCreator.startPoseFarSideRed));
-            waitForPath(5000);
+            waitForPath();
 
         } finally {
             // Graceful shutdown
@@ -47,9 +48,9 @@ public class FarSideRed extends LinearOpMode {
     /**
      * Waits for the follower to complete its current path, with a timeout.
      */
-    private void waitForPath(long timeoutMs) {
+    private void waitForPath() {
         long startTime = System.currentTimeMillis();
-        while (opModeIsActive() && follower.isBusy() && (System.currentTimeMillis() - startTime) < timeoutMs) {
+        while (opModeIsActive() && follower.isBusy() && (System.currentTimeMillis() - startTime) < (long) 5000) {
             follower.update();
             mechanisms.update();
         }

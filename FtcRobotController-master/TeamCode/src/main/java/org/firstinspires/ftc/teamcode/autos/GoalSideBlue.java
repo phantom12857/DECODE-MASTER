@@ -13,7 +13,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.PathCreator;
 
 /**
  * Autonomous OpMode for the blue alliance, starting on the goal side.
- *
+ * <p>
  * REFACTORED: Added MechanismCoordinator for synchronized firing,
  * improved error handling, and comprehensive state management.
  */
@@ -66,6 +66,7 @@ public class GoalSideBlue extends LinearOpMode {
     private static final double INTAKE_TIME_S = 3.0;
     private static final double LAUNCHER_SPINUP_TIME_S = 2.0;
 
+    @SuppressWarnings({"RedundantThrows", "DuplicateBranchesInSwitch"})
     @Override
     public void runOpMode() throws InterruptedException {
         try {
@@ -224,6 +225,7 @@ public class GoalSideBlue extends LinearOpMode {
 
     private void executeHomingSpindexer() {
         if (mechanisms.hasSpindexer()) {
+            assert mechanisms.spindexer != null;
             mechanisms.spindexer.home();
             transitionTo(AutoState.WAIT_FOR_HOMING);
         } else {
@@ -233,6 +235,7 @@ public class GoalSideBlue extends LinearOpMode {
     }
 
     private void executeWaitForHoming() {
+        assert mechanisms.spindexer != null;
         if (!mechanisms.spindexer.isBusy()) {
             transitionTo(AutoState.DRIVE_TO_SCORE);
         } else if (stateTimer.seconds() > HOMING_TIMEOUT_S) {
@@ -244,6 +247,7 @@ public class GoalSideBlue extends LinearOpMode {
     private void executeDriveToScore(PathChain path) {
         follower.followPath(path);
         if (mechanisms.hasLauncher()) {
+            assert mechanisms.launcher != null;
             mechanisms.launcher.setRPM(3250);
         }
         transitionTo(AutoState.WAIT_FOR_PATH_1);
@@ -257,6 +261,7 @@ public class GoalSideBlue extends LinearOpMode {
     private void executeDriveToIntake(PathChain path) {
         follower.followPath(path);
         if (mechanisms.hasIntake()) {
+            assert mechanisms.intake != null;
             mechanisms.intake.start();
         }
         transitionTo(AutoState.WAIT_FOR_PATH_2);
@@ -350,6 +355,7 @@ public class GoalSideBlue extends LinearOpMode {
         // Just wait for intake time, mechanism already running
         if (stateTimer.seconds() > INTAKE_TIME_S) {
             if (mechanisms.hasIntake()) {
+                assert mechanisms.intake != null;
                 mechanisms.intake.stop();
             }
             transitionTo(AutoState.DRIVE_TO_SCORE_2);
@@ -386,14 +392,16 @@ public class GoalSideBlue extends LinearOpMode {
         for (int i = 0; i < shots; i++) {
             // Wait for launcher to be at speed
             ElapsedTime waitTimer = new ElapsedTime();
-            while (opModeIsActive() &&
-                    !mechanisms.launcher.isAtSpeed(100) &&
-                    waitTimer.seconds() < LAUNCHER_SPINUP_TIME_S) {
+            while (opModeIsActive()) {
+                assert mechanisms.launcher != null;
+                if (!(!mechanisms.launcher.isAtSpeed(100) &&
+                        waitTimer.seconds() < LAUNCHER_SPINUP_TIME_S)) break;
                 mechanisms.update();
                 sleep(20);
             }
 
             // Fire
+            assert mechanisms.launcher != null;
             mechanisms.launcher.kick();
             waitTimer.reset();
             while (opModeIsActive() &&
@@ -405,6 +413,7 @@ public class GoalSideBlue extends LinearOpMode {
 
             // Advance spindexer for next shot (if not last shot)
             if (i < shots - 1) {
+                assert mechanisms.spindexer != null;
                 mechanisms.spindexer.increment();
                 waitTimer.reset();
                 while (opModeIsActive() &&

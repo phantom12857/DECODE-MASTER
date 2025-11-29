@@ -19,6 +19,7 @@ public class GoalSideRed extends LinearOpMode {
     private AprilTagDetector aprilTagDetector;
     private Follower follower;
 
+    @SuppressWarnings({"RedundantThrows", "unused"})
     @Override
     public void runOpMode() throws InterruptedException {
         try {
@@ -39,8 +40,10 @@ public class GoalSideRed extends LinearOpMode {
             waitForStart();
 
             // Autonomous Sequence
+            assert mechanisms.spindexer != null;
             mechanisms.spindexer.home();
             follower.followPath(toScore);
+            assert mechanisms.launcher != null;
             mechanisms.launcher.setRPM(3250);
             waitForPath(2000);
 
@@ -73,10 +76,14 @@ public class GoalSideRed extends LinearOpMode {
     private void fireThreeRings() {
         for (int i = 0; i < 3; i++) {
             long startTime = System.currentTimeMillis();
-            while (opModeIsActive() && !mechanisms.launcher.isAtSpeed(100) && (System.currentTimeMillis() - startTime) < 2000) {
+            while (opModeIsActive()) {
+                assert mechanisms.launcher != null;
+                if (!(!mechanisms.launcher.isAtSpeed(100) && (System.currentTimeMillis() - startTime) < 2000))
+                    break;
                 mechanisms.update();
             }
 
+            assert mechanisms.launcher != null;
             mechanisms.launcher.kick();
             startTime = System.currentTimeMillis();
             while (opModeIsActive() && mechanisms.launcher.isKicking() && (System.currentTimeMillis() - startTime) < 1000) {
@@ -84,6 +91,7 @@ public class GoalSideRed extends LinearOpMode {
             }
 
             if (i < 2) {
+                assert mechanisms.spindexer != null;
                 mechanisms.spindexer.increment();
                 startTime = System.currentTimeMillis();
                 while (opModeIsActive() && mechanisms.spindexer.isBusy() && (System.currentTimeMillis() - startTime) < 1000) {
