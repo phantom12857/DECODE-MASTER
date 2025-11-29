@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.autos;
 
-import com.pedropathing.pathing.follower.Follower;
+import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.teamcode.Mechanisms.core.DECODEMechanisms;

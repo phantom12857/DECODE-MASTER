@@ -5,9 +5,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // JitPack is needed for libraries like EasyOpenCV
+        // JitPack is needed for many FTC libraries
         maven { url 'https://jitpack.io' }
-        // The NEW and CORRECT repository for Pedro Pathing
+        // The repository for Bylazar and Pedro Pathing libraries
         maven { url = "https://mymaven.bylazar.com/releases" }
     }
 }

@@ -26,6 +26,7 @@ android {
     }
 
     // This is often inherited from build.common.gradle, but defining it here is fine.
+    //noinspection GradleDependency
     compileSdkVersion 34
     lint {
         disable 'UnusedResources'

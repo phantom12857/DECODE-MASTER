@@ -15,10 +15,9 @@ dependencies {
 
     implementation 'androidx.appcompat:appcompat:1.7.1'
 
-    // This is the NEW and CORRECT dependency for Pedro Pathing
-    // The name is now 'ftc' and you should use a valid version.
-    implementation 'com.pedropathing:ftc:2.1.6'
+    implementation 'com.pedropathing:ftc:2.0.4'
 
     //noinspection Aligned16KB
     implementation 'org.openftc:easyopencv:1.7.3'
+    implementation 'com.bylazar:fullpanels:1.0.6'
 }
