@@ -12,6 +12,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FtcRobotController-master"
+rootProject.name = "DECODE-MASTER"
 include ':TeamCode'
 include ':FtcRobotController'
