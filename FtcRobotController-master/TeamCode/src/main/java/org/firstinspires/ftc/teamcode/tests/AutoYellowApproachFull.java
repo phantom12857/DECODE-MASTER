@@ -85,13 +85,29 @@ public class AutoYellowApproachFull extends LinearOpMode {
             double errorStrafe = 0; // optional lateral correction if needed
             double correctionStrafe = kP_strafe * errorStrafe;
 
-            // --- Obstacle detection placeholder ---
+            // --- Obstacle detection with distance sensor ---
             boolean obstacleDetected = false;
             double obstacleAvoidTurn = 0;
 
-            // TODO: integrate distance sensor logic here
+            // Integrate distance sensor for obstacle detection
+            // Check if we have a distance sensor available
+            if (hardwareMap.tryGet(com.qualcomm.robotcore.hardware.DistanceSensor.class, "frontDistance") != null) {
+                com.qualcomm.robotcore.hardware.DistanceSensor distanceSensor = 
+                    hardwareMap.get(com.qualcomm.robotcore.hardware.DistanceSensor.class, "frontDistance");
+                
+                double obstacleDistance = distanceSensor.getDistance(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH);
+                
+                // If obstacle within 12 inches, take avoidance action
+                if (obstacleDistance < 12.0) {
+                    obstacleDetected = true;
+                    // Turn away from obstacle (simple avoidance)
+                    obstacleAvoidTurn = 0.3;  // Turn right to avoid
+                    telemetry.addData("⚠️ Obstacle", "%.1f in", obstacleDistance);
+                }
+            }
+            
             if (obstacleDetected) {
-                // Simple avoidance: turn a bit
+                // Simple avoidance: turn away from obstacle
                 correctionTurn += obstacleAvoidTurn;
             }
 

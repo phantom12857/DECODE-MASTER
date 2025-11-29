@@ -41,9 +41,13 @@ public class TurretSystem implements Subsystem {
     // ==================================================
     // S T A T E
     // ==================================================
+    // Encoder reading happens on separate thread (READ-ONLY)
+    // Hardware writes happen on main thread only (FTC Control Hub requirement)
     private final ExecutorService encoderExecutorService;
+    
+    // Volatile for thread-safe reads from background thread
     private volatile double currentPosition = 0.5;
-    private double currentAngleDegrees = 0.0;
+    private double currentAngleDegrees = 0.0;  // Only accessed from main thread
 
     /**
      * Constructor for TurretSystem.

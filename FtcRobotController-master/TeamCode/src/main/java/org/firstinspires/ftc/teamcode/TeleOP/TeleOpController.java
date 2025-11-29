@@ -112,31 +112,41 @@ public class TeleOpController {
             );
         } else {
             this.coordinator = null;
-            System.err.println("⚠️ MechanismCoordinator not available");
+            if (telemetry != null) {
+                telemetry.addData("⚠️ Warning", "MechanismCoordinator unavailable");
+            }
         }
     }
 
     /**
-     * Main update loop.
+     * Main update loop with exception handling.
      */
     public void update() {
-        updateButtonDebouncers();
-        handleEmergencyStop();
-        handleDriveControls();
-        handleIntakeControls();
-        handleLauncherControls();
-        handleSpindexerControls();
-        handleHoodAndTurretControls();
-        handleVisionControls();
-        handleCoordinatorControls();
+        try {
+            updateButtonDebouncers();
+            handleEmergencyStop();
+            handleDriveControls();
+            handleIntakeControls();
+            handleLauncherControls();
+            handleSpindexerControls();
+            handleHoodAndTurretControls();
+            handleVisionControls();
+            handleCoordinatorControls();
 
-        if (coordinator != null) {
-            coordinator.update();
-        }
+            if (coordinator != null) {
+                coordinator.update();
+            }
 
-        // Update vision targeting if available
-        if (visionTargeting != null) {
-            visionTargeting.update();
+            // Update vision targeting if available (only when enabled)
+            if (visionTargeting != null) {
+                visionTargeting.update();
+            }
+        } catch (Exception e) {
+            // Log error but don't crash - robot continues functioning
+            if (telemetry != null) {
+                telemetry.addData("⚠️ Controller Error", e.getClass().getSimpleName());
+                telemetry.addData("Message", e.getMessage());
+            }
         }
     }
 
@@ -246,6 +256,13 @@ public class TeleOpController {
 
     private void handleVisionControls() {
         if (visionTargeting == null) return;
+        
+        // Enable vision when left trigger is held (for auto-aim)
+        boolean visionRequested = gamepad2.left_trigger > 0.5;
+        visionTargeting.setEnabled(visionRequested);
+        
+        // Update vision aim state
+        visionAimEnabled = visionRequested && visionTargeting.isLocked();
 
         // BACK button = scan for monolith
         if (g2_back.wasPressedThisCycle()) {

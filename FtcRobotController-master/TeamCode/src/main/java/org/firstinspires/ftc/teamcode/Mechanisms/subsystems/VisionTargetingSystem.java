@@ -79,9 +79,15 @@ public class VisionTargetingSystem implements Subsystem {
     private AprilTagDetection targetTag = null;
     private int targetTagId = -1;
     private boolean isBlueAlliance = true;
+    
+    // Performance optimization: enable/disable vision processing
+    private boolean enabled = false;
 
     private GamePiece.Color[] desiredFiringOrder = null;  // Determined from monolith
     private String lastError = "";
+    
+    // Pre-calculated constants for performance
+    private static final double PIXELS_PER_DEGREE = CAMERA_WIDTH / CAMERA_FOV_HORIZONTAL;
 
     /**
      * Targeting state machine
@@ -140,27 +146,51 @@ public class VisionTargetingSystem implements Subsystem {
 
     @Override
     public void update() {
-        if (currentState == TargetingState.IDLE || currentState == TargetingState.ERROR) {
+        // Skip processing if disabled or in inactive states
+        if (!enabled || currentState == TargetingState.IDLE || currentState == TargetingState.ERROR) {
             return;
         }
 
-        switch (currentState) {
-            case SEARCHING:
-                updateSearching();
-                break;
-            case CALCULATING:
-                updateCalculating();
-                break;
-            case ROTATING:
-                updateRotating();
-                break;
-            case LOCKED:
-                updateLocked();
-                break;
-            case LOST_TRACK:
-                updateLostTrack();
-                break;
+        try {
+            switch (currentState) {
+                case SEARCHING:
+                    updateSearching();
+                    break;
+                case CALCULATING:
+                    updateCalculating();
+                    break;
+                case ROTATING:
+                    updateRotating();
+                    break;
+                case LOCKED:
+                    updateLocked();
+                    break;
+                case LOST_TRACK:
+                    updateLostTrack();
+                    break;
+            }
+        } catch (Exception e) {
+            handleError("Update error: " + e.getMessage());
+            transitionTo(TargetingState.ERROR);
         }
+    }
+    
+    /**
+     * Enable or disable vision processing.
+     * When disabled, update() returns immediately to save CPU.
+     */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        if (!enabled && currentState != TargetingState.IDLE) {
+            cancelTargeting();
+        }
+    }
+    
+    /**
+     * Check if vision targeting is currently enabled.
+     */
+    public boolean isEnabled() {
+        return enabled;
     }
 
     /**
@@ -345,9 +375,8 @@ public class VisionTargetingSystem implements Subsystem {
      * @return Angular error in degrees
      */
     private double pixelErrorToAngle(double pixelError) {
-        // Use camera FOV to convert pixels to angles
-        double pixelsPerDegree = CAMERA_WIDTH / CAMERA_FOV_HORIZONTAL;
-        return pixelError / pixelsPerDegree;
+        // Use pre-calculated constant for better performance
+        return pixelError / PIXELS_PER_DEGREE;
     }
 
     /**
@@ -469,7 +498,7 @@ public class VisionTargetingSystem implements Subsystem {
                 break;
             case ERROR:
                 turret.setPower(0);
-                System.err.println("Vision targeting error: " + lastError);
+                // Error logged in lastError, accessible via telemetry
                 break;
         }
     }

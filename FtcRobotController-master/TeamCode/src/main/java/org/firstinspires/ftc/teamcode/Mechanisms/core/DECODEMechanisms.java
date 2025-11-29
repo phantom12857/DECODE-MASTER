@@ -100,8 +100,12 @@ public class DECODEMechanisms {
         } catch (Exception e) {
             String errorMsg = name + " initialization failed: " + e.getMessage();
             initializationErrors.add(errorMsg);
-            System.err.println(errorMsg);
-            e.printStackTrace();
+            
+            if (telemetry != null) {
+                telemetry.addData("⚠️ Init Failed", name);
+                telemetry.addData("Error", e.getClass().getSimpleName());
+            }
+            
             return null;
         }
     }
@@ -123,11 +127,10 @@ public class DECODEMechanisms {
             try {
                 subsystem.update();
             } catch (Exception e) {
-                // Log or handle exceptions from a specific subsystem to prevent a full crash.
-                System.err.println("Exception in subsystem update: " + subsystem.getClass().getSimpleName());
-                e.printStackTrace();
+                // Log error without crashing to prevent complete robot shutdown
+                String subsystemName = subsystem.getClass().getSimpleName();
                 if (telemetry != null) {
-                    telemetry.addData("⚠️ ERROR", subsystem.getClass().getSimpleName());
+                    telemetry.addData("⚠️ Subsystem Error", subsystemName);
                 }
             }
         }
@@ -142,8 +145,10 @@ public class DECODEMechanisms {
             try {
                 subsystem.stop();
             } catch (Exception e) {
-                System.err.println("Exception in subsystem stop: " + subsystem.getClass().getSimpleName());
-                e.printStackTrace();
+                // Errors during shutdown are logged but don't prevent other subsystems from stopping
+                if (telemetry != null) {
+                    telemetry.addData("⚠️ Stop Error", subsystem.getClass().getSimpleName());
+                }
             }
         }
     }
