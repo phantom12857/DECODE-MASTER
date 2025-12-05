@@ -206,15 +206,16 @@ public class TeleOpController {
         if (!mechanisms.hasIntake()) return;
 
         if (gamepad2.right_trigger > 0.1 && gamepad2.left_trigger < 0.1) {
-            // Right trigger only = intake
+            // Right trigger only = full intake
             mechanisms.intake.start();
         } else if (gamepad2.left_trigger > 0.5) {
             // Left trigger at least halfway = vision aim mode
             visionAimEnabled = true;
             mechanisms.intake.stop();
         } else {
+            // Neither trigger pressed = passive intake to maintain grip
             visionAimEnabled = false;
-            mechanisms.intake.stop();
+            mechanisms.intake.passiveIntake();
         }
     }
 
@@ -256,11 +257,11 @@ public class TeleOpController {
 
     private void handleVisionControls() {
         if (visionTargeting == null) return;
-        
+
         // Enable vision when left trigger is held (for auto-aim)
         boolean visionRequested = gamepad2.left_trigger > 0.5;
         visionTargeting.setEnabled(visionRequested);
-        
+
         // Update vision aim state
         visionAimEnabled = visionRequested && visionTargeting.isLocked();
 

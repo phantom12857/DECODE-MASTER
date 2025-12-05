@@ -16,7 +16,7 @@ public class IntakeSystem implements Subsystem {
     // ==================================================
     private static final double INTAKE_POWER = 1.0;
     private static final double REVERSE_POWER = -1.0;
-    private static final double PASSIVE_POWER = 0.2; // Small power to hold pixels
+    private static final double PASSIVE_POWER = 0.4; // Small power to hold pixels
 
     // ==================================================
     // H A R D W A R E
