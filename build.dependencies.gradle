@@ -1,0 +1,28 @@
+dependencies {
+    implementation 'org.firstinspires.ftc:Inspection:11.0.0'
+    implementation 'org.firstinspires.ftc:Blocks:11.0.0'
+    //noinspection Aligned16KB
+    implementation 'org.firstinspires.ftc:RobotCore:11.0.0'
+    implementation 'org.firstinspires.ftc:RobotServer:11.0.0'
+    implementation 'org.firstinspires.ftc:OnBotJava:11.0.0'
+    implementation 'org.firstinspires.ftc:Hardware:11.0.0'
+    implementation 'org.firstinspires.ftc:FtcCommon:11.0.0'
+    implementation 'org.firstinspires.ftc:Vision:11.0.0'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+
+    // Pedro Pathing - FTCLib-integrated (matches your local files)
+    //noinspection GradleDependency
+    implementation 'com.pedropathing:pedro:1.0.6'
+    //noinspection GradleDependency
+    implementation 'com.pedropathing:ftclib:1.0.6'
+
+    implementation 'com.pedropathing:telemetry:1.0.0'
+
+    // FTCLib core (if you use it separately)
+    // implementation 'org.ftclib.ftclib:core:2.1.1'
+
+    // Dashboards
+    implementation 'com.acmerobotics.dashboard:dashboard:0.5.1'
+    //noinspection GradleDependency
+    implementation 'com.bylazar:fullpanels:1.0.2'
+}
