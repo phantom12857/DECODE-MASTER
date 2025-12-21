@@ -65,6 +65,9 @@ public class HoodSystem implements Subsystem {
 
             // Initialize target position to the current hardware state.
             targetPosition = getPosition();
+
+            // OPTIONAL FIX: Initialize servo to stopped state
+            hoodServo.setPower(0);
         } catch (Exception e) {
             throw new RuntimeException("Hood system initialization failed", e);
         }
