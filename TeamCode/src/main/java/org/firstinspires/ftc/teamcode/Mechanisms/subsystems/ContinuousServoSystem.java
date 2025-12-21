@@ -37,6 +37,10 @@ public class ContinuousServoSystem implements Subsystem {
 
             pid1 = new PIDController(KP, KI, KD);
             pid2 = new PIDController(KP, KI, KD);
+
+            // FIXED: Initialize servos to stopped state
+            if (servo1 != null) servo1.setPower(0);
+            if (servo2 != null) servo2.setPower(0);
         } catch (Exception e) {
             throw new RuntimeException("Continuous servo system initialization failed", e);
         }

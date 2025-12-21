@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.Mechanisms.utils.ButtonDebouncer;
  * The TeleOpController1ManArmy class provides an alternative control scheme
  * where a single driver can control all essential robot functions from one gamepad.
  */
-public class TeleOpController1ManArmy {
+public class  TeleOpController1ManArmy {
 
     // ==================================================
     // D E P E N D E N C I E S
