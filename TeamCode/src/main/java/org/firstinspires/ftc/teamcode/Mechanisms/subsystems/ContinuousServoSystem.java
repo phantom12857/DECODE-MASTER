@@ -19,31 +19,64 @@ public class ContinuousServoSystem implements Subsystem {
     private static final double KP = 0.01, KI = 0.0005, KD = 0.002;
 
     public ContinuousServoSystem(HardwareMap hardwareMap) {
+        // FIXED: Handle missing hardware gracefully instead of throwing exception
+        CRServo tempServo1 = null;
+        CRServo tempServo2 = null;
+        DcMotor tempEncoder1 = null;
+        DcMotor tempEncoder2 = null;
+
+        // Try to get servo 1
         try {
-            servo1 = hardwareMap.get(CRServo.class, "continuousServo1");
-            servo2 = hardwareMap.get(CRServo.class, "continuousServo2");
-            encoder1 = hardwareMap.get(DcMotor.class, "servoEncoder1");
-            encoder2 = hardwareMap.get(DcMotor.class, "servoEncoder2");
-
-            if (encoder1 != null) {
-                encoder1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                encoder1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            }
-
-            if (encoder2 != null) {
-                encoder2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                encoder2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            }
-
-            pid1 = new PIDController(KP, KI, KD);
-            pid2 = new PIDController(KP, KI, KD);
-
-            // FIXED: Initialize servos to stopped state
-            if (servo1 != null) servo1.setPower(0);
-            if (servo2 != null) servo2.setPower(0);
+            tempServo1 = hardwareMap.get(CRServo.class, "continuousServo1");
         } catch (Exception e) {
-            throw new RuntimeException("Continuous servo system initialization failed", e);
+            // Servo 1 not configured - this is okay
         }
+
+        // Try to get servo 2
+        try {
+            tempServo2 = hardwareMap.get(CRServo.class, "continuousServo2");
+        } catch (Exception e) {
+            // Servo 2 not configured - this is okay
+        }
+
+        // Try to get encoder 1
+        try {
+            tempEncoder1 = hardwareMap.get(DcMotor.class, "servoEncoder1");
+        } catch (Exception e) {
+            // Encoder 1 not configured - this is okay
+        }
+
+        // Try to get encoder 2
+        try {
+            tempEncoder2 = hardwareMap.get(DcMotor.class, "servoEncoder2");
+        } catch (Exception e) {
+            // Encoder 2 not configured - this is okay
+        }
+
+        // Assign to final fields
+        servo1 = tempServo1;
+        servo2 = tempServo2;
+        encoder1 = tempEncoder1;
+        encoder2 = tempEncoder2;
+
+        // Configure encoders if present
+        if (encoder1 != null) {
+            encoder1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            encoder1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
+
+        if (encoder2 != null) {
+            encoder2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            encoder2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
+
+        // Always create PID controllers (they work even if hardware is missing)
+        pid1 = new PIDController(KP, KI, KD);
+        pid2 = new PIDController(KP, KI, KD);
+
+        // FIXED: Initialize servos to stopped state (if present)
+        if (servo1 != null) servo1.setPower(0);
+        if (servo2 != null) servo2.setPower(0);
     }
 
     @Override
@@ -90,5 +123,13 @@ public class ContinuousServoSystem implements Subsystem {
         if (servo == 1 && encoder1 != null) return encoder1.getCurrentPosition();
         if (servo == 2 && encoder2 != null) return encoder2.getCurrentPosition();
         return 0;
+    }
+
+    /**
+     * Check if any hardware is actually connected.
+     * @return true if at least one servo or encoder is present
+     */
+    public boolean hasHardware() {
+        return servo1 != null || servo2 != null || encoder1 != null || encoder2 != null;
     }
 }
