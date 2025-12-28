@@ -42,9 +42,10 @@ public class LauncherSystem implements Subsystem {
     private static final double TICKS_PER_REV = 28.0;  // Encoder ticks per revolution
     private static final double GEAR_RATIO = 1.0;  // Adjust if geared
 
-    private static final double KICKER_EXTEND_POS = 0.67;
-    private static final double KICKER_RETRACT_POS = 1.0;
-    private static final long KICK_DURATION_MS = 500;
+    // FIXED: Kicker servo positions (full range, corrected direction)
+    private static final double KICKER_RETRACT_POS = 0.0;   // FIXED: Was 1.0, now fully retracted
+    private static final double KICKER_EXTEND_POS = 0.7;    // FIXED: Was 0.67, now extends fully
+    private static final long KICK_DURATION_MS = 350;       // FIXED: Was 500, now faster cycle
 
     // ==================================================
     // H I G H - S P E E D   P I D   T U N I N G
@@ -340,7 +341,7 @@ public class LauncherSystem implements Subsystem {
     }
 
     /**
-     * Force kick even if not at exact speed (emergency).
+     * Force kick even if not at exact speed (emergency/testing).
      */
     public void forceKick() {
         if (kickerState == KickerState.RETRACTED) {
@@ -349,6 +350,28 @@ public class LauncherSystem implements Subsystem {
             kickerTimer.reset();
             shotCount++;
         }
+    }
+
+    /**
+     * NEW: Test kicker servo movement (for debugging).
+     * Cycles kicker servo between retract and extend positions.
+     */
+    public void testKickerServo() {
+        if (kickerState == KickerState.RETRACTED) {
+            kickerServo.setPosition(KICKER_EXTEND_POS);
+            kickerState = KickerState.KICKING;
+            kickerTimer.reset();
+        } else {
+            kickerServo.setPosition(KICKER_RETRACT_POS);
+            kickerState = KickerState.RETRACTED;
+        }
+    }
+
+    /**
+     * NEW: Manually set kicker position (for testing/tuning).
+     */
+    public void setKickerPosition(double position) {
+        kickerServo.setPosition(Math.max(0.0, Math.min(1.0, position)));
     }
 
     // ==================================================
@@ -377,10 +400,10 @@ public class LauncherSystem implements Subsystem {
 
     /**
      * Set target RPM with distance-based calculation.
+     * Uses linear regression calibrated for your launcher.
      */
     public void setRPMForDistance(double distanceInches) {
-        // Optimized regression for 6000 RPM motor
-        // Based on projectile physics: v = sqrt(2*g*h)
+        // Original formula - KEEP THIS, it's calibrated correctly!
         double rpm = (15.0 * distanceInches) + 2500;
         setRPM(Math.max(2500, Math.min(5500, rpm)));
     }
